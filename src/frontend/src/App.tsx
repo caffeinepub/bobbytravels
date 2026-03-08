@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
+import { InstallBanner } from "./components/InstallBanner";
 import { Navbar } from "./components/Navbar";
 import { AccountPage } from "./pages/AccountPage";
 import { ContactPage } from "./pages/ContactPage";
@@ -71,6 +72,7 @@ export default function App() {
       <div className="flex-1">{renderPage()}</div>
       <Footer />
       <Toaster richColors position="top-right" />
+      <InstallBanner />
     </div>
   );
 }

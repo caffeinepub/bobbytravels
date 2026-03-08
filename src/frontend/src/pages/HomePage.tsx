@@ -1,15 +1,20 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import {
+  CheckCircle2,
   ChevronRight,
   Clock,
   MessageCircle,
   Phone,
   Plane,
+  Share2,
   Shield,
+  Smartphone,
   Star,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
 type Page = "home" | "search" | "account" | "payment" | "contact";
 
@@ -49,7 +54,27 @@ const popularRoutes = [
   { from: "Hyderabad (HYD)", to: "Toronto (YYZ)", price: "₹72,999" },
 ];
 
+const androidSteps = [
+  "Open Chrome browser menu (⋮ three dots)",
+  'Select "Add to Home Screen"',
+  'Tap "Install" to confirm',
+];
+
+const iosSteps = [
+  "Tap the Share button (box with arrow) in Safari",
+  'Scroll down, tap "Add to Home Screen"',
+  'Tap "Add" in the top-right corner',
+];
+
 export function HomePage({ onNavigate }: HomePageProps) {
+  const { isInstallable, isInstalled, isIOS, isStandalone, handleInstall } =
+    useInstallPrompt();
+  const [showIOSModal, setShowIOSModal] = useState(false);
+
+  const showAndroidInstall =
+    isInstallable && !isIOS && !isStandalone && !isInstalled;
+  const alreadyInstalled = isStandalone || isInstalled;
+
   return (
     <main>
       {/* Hero Section */}
@@ -282,6 +307,262 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      {/* Get the App */}
+      <section data-ocid="getapp.section" className="py-20 bg-sky-pale">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Heading */}
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <img
+                src="/assets/generated/bobbytravels-icon.dim_512x512.png"
+                alt="BobbyTravels App"
+                className="w-20 h-20 rounded-2xl shadow-flight"
+              />
+              <h2 className="font-display font-bold text-3xl md:text-4xl text-foreground">
+                Get the <span className="text-navy">BobbyTravels App</span>
+              </h2>
+              <p className="text-muted-foreground max-w-md">
+                Install on your phone for quick access to flight deals anytime
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Already installed state */}
+          {alreadyInstalled && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center justify-center gap-3 py-8"
+            >
+              <CheckCircle2 className="w-7 h-7 text-green-600" />
+              <span className="font-ui font-semibold text-lg text-green-700">
+                App already installed!
+              </span>
+            </motion.div>
+          )}
+
+          {/* Instruction cards */}
+          {!alreadyInstalled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              {/* Android card */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="bg-white rounded-2xl p-6 flight-card-shadow"
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ background: "oklch(0.93 0.04 150)" }}
+                  >
+                    <Smartphone
+                      className="w-5 h-5"
+                      style={{ color: "oklch(0.35 0.15 145)" }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-foreground">
+                      Android (Chrome)
+                    </h3>
+                    <p className="text-muted-foreground text-xs">
+                      Google Chrome browser
+                    </p>
+                  </div>
+                </div>
+                <ol className="space-y-3">
+                  {androidSteps.map((step, idx) => (
+                    <li key={step} className="flex items-start gap-3">
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                        style={{
+                          background: "oklch(0.22 0.065 260)",
+                          color: "oklch(0.97 0.008 240)",
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <span className="text-sm text-muted-foreground leading-relaxed">
+                        {step}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </motion.div>
+
+              {/* iPhone/iPad card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="bg-white rounded-2xl p-6 flight-card-shadow"
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ background: "oklch(0.95 0.01 250)" }}
+                  >
+                    <Share2
+                      className="w-5 h-5"
+                      style={{ color: "oklch(0.38 0.12 260)" }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-foreground">
+                      iPhone / iPad (Safari)
+                    </h3>
+                    <p className="text-muted-foreground text-xs">
+                      Apple Safari browser
+                    </p>
+                  </div>
+                </div>
+                <ol className="space-y-3">
+                  {iosSteps.map((step, idx) => (
+                    <li key={step} className="flex items-start gap-3">
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                        style={{
+                          background: "oklch(0.22 0.065 260)",
+                          color: "oklch(0.97 0.008 240)",
+                        }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <span className="text-sm text-muted-foreground leading-relaxed">
+                        {step}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </motion.div>
+            </div>
+          )}
+
+          {/* CTA buttons */}
+          {!alreadyInstalled && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              {showAndroidInstall && (
+                <Button
+                  data-ocid="getapp.primary_button"
+                  size="lg"
+                  onClick={handleInstall}
+                  className="bg-navy hover:bg-navy-light text-white font-display font-semibold px-8 py-5 h-auto rounded-xl shadow-flight"
+                >
+                  <Smartphone className="mr-2 w-5 h-5" />
+                  Install App Now
+                </Button>
+              )}
+              {isIOS && (
+                <Button
+                  data-ocid="getapp.primary_button"
+                  size="lg"
+                  onClick={() => setShowIOSModal(true)}
+                  variant="outline"
+                  className="border-navy/30 text-navy hover:bg-navy/5 font-display font-semibold px-8 py-5 h-auto rounded-xl"
+                >
+                  <Share2 className="mr-2 w-5 h-5" />
+                  iOS Install Guide
+                </Button>
+              )}
+              {!isInstallable && !alreadyInstalled && (
+                <p className="text-muted-foreground text-sm text-center py-2">
+                  Open this site in Chrome (Android) or Safari (iPhone) to
+                  install
+                </p>
+              )}
+            </motion.div>
+          )}
+        </div>
+      </section>
+
+      {/* iOS Install Modal */}
+      <AnimatePresence>
+        {showIOSModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            style={{ background: "oklch(0.1 0.03 260 / 0.6)" }}
+            onClick={() => setShowIOSModal(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-display font-bold text-xl text-foreground">
+                  Install on iPhone / iPad
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowIOSModal(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <ol className="space-y-4 mb-6">
+                {[
+                  {
+                    icon: <Share2 className="w-5 h-5" />,
+                    text: "Tap the Share button (box with arrow) at the bottom of Safari",
+                  },
+                  {
+                    icon: <span className="text-sm">↕</span>,
+                    text: 'Scroll down in the share sheet and tap "Add to Home Screen"',
+                  },
+                  {
+                    icon: <CheckCircle2 className="w-5 h-5" />,
+                    text: 'Tap "Add" in the top-right corner to install',
+                  },
+                ].map((step) => (
+                  <li key={step.text} className="flex items-start gap-4">
+                    <span
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: "oklch(0.22 0.065 260)",
+                        color: "oklch(0.97 0.008 240)",
+                      }}
+                    >
+                      {step.icon}
+                    </span>
+                    <span className="text-sm text-muted-foreground leading-relaxed pt-1.5">
+                      {step.text}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <Button
+                className="w-full bg-navy hover:bg-navy-light text-white font-ui"
+                onClick={() => setShowIOSModal(false)}
+              >
+                Got it!
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* CTA Banner */}
       <section className="py-16 hero-gradient relative overflow-hidden">

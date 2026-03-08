@@ -13,9 +13,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import {
   useGetCallerUserProfile,
+  useInitializeAccessControl,
+  useIsCallerAdmin,
   useSaveCallerUserProfile,
 } from "@/hooks/useQueries";
-import { CheckCircle, Loader2, LogIn, LogOut, Save, User } from "lucide-react";
+import {
+  CheckCircle,
+  KeyRound,
+  Loader2,
+  LogIn,
+  LogOut,
+  Save,
+  Shield,
+  User,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +45,9 @@ export function AccountPage() {
     useGetCallerUserProfile();
   const { mutateAsync: saveProfile, isPending: savePending } =
     useSaveCallerUserProfile();
+  const { data: isAdmin } = useIsCallerAdmin();
+  const { mutateAsync: claimAdmin, isPending: claimPending } =
+    useInitializeAccessControl();
 
   const isLoggedIn = !!identity;
 
@@ -41,6 +55,8 @@ export function AccountPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [saved, setSaved] = useState(false);
+  const [adminToken, setAdminToken] = useState("");
+  const [showAdminSection, setShowAdminSection] = useState(false);
 
   // Populate form when profile loads
   useEffect(() => {
@@ -68,6 +84,26 @@ export function AccountPage() {
       setTimeout(() => setSaved(false), 3000);
     } catch {
       toast.error("Failed to save profile. Please try again.");
+    }
+  };
+
+  const handleClaimAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminToken.trim()) {
+      toast.error("Please enter the admin secret token.");
+      return;
+    }
+    try {
+      await claimAdmin(adminToken.trim());
+      toast.success(
+        "Admin access granted! You can now view the Leads dashboard.",
+      );
+      setAdminToken("");
+      setShowAdminSection(false);
+    } catch {
+      toast.error(
+        "Invalid token or admin already assigned. Please check the token and try again.",
+      );
     }
   };
 
@@ -206,6 +242,16 @@ export function AccountPage() {
                 </div>
               </Card>
 
+              {/* Admin status badge */}
+              {isAdmin && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <Shield className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-sm font-ui font-semibold text-emerald-700">
+                    Admin Access Active -- You can view the Leads Dashboard
+                  </span>
+                </div>
+              )}
+
               {/* Profile form */}
               <Card className="border-0 shadow-flight rounded-3xl">
                 <CardHeader className="pb-3 px-6 pt-6">
@@ -307,6 +353,71 @@ export function AccountPage() {
                   )}
                 </CardContent>
               </Card>
+              {/* Claim Admin Access */}
+              {!isAdmin && (
+                <Card className="border border-dashed border-border/60 shadow-none rounded-3xl bg-transparent">
+                  <CardContent className="px-6 py-5">
+                    {!showAdminSection ? (
+                      <button
+                        type="button"
+                        data-ocid="account.admin.open_modal_button"
+                        onClick={() => setShowAdminSection(true)}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-ui"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                        Have an admin token? Claim admin access
+                      </button>
+                    ) : (
+                      <form onSubmit={handleClaimAdmin} className="space-y-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <KeyRound className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-ui font-semibold text-foreground">
+                            Claim Admin Access
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-ui">
+                          Enter the admin secret token to gain admin privileges.
+                        </p>
+                        <Input
+                          data-ocid="account.admin.input"
+                          type="password"
+                          placeholder="Enter admin secret token"
+                          value={adminToken}
+                          onChange={(e) => setAdminToken(e.target.value)}
+                          className="h-11 rounded-xl"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="submit"
+                            data-ocid="account.admin.submit_button"
+                            disabled={claimPending}
+                            className="flex-1 bg-navy hover:bg-navy-light text-white font-ui font-semibold rounded-xl h-10"
+                          >
+                            {claimPending ? (
+                              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                            ) : (
+                              <Shield className="mr-2 w-4 h-4" />
+                            )}
+                            {claimPending ? "Claiming..." : "Claim Admin"}
+                          </Button>
+                          <Button
+                            type="button"
+                            data-ocid="account.admin.cancel_button"
+                            variant="ghost"
+                            onClick={() => {
+                              setShowAdminSection(false);
+                              setAdminToken("");
+                            }}
+                            className="rounded-xl h-10 px-4"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </motion.div>

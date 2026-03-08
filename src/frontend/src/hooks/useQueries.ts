@@ -65,3 +65,18 @@ export function useSubmitEnquiry() {
     },
   });
 }
+
+export function useInitializeAccessControl() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (secret: string) => {
+      if (!actor) throw new Error("Not connected");
+      return actor._initializeAccessControlWithSecret(secret);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
+      void queryClient.invalidateQueries({ queryKey: ["callerUserProfile"] });
+    },
+  });
+}
