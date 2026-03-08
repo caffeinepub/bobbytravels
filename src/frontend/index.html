@@ -31,5 +31,22 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+  <!-- Zoho SalesIQ Live Chat -->
+  <script type="text/javascript" id="zsiqchat">
+    var $zoho = $zoho || {};
+    $zoho.salesiq = $zoho.salesiq || {
+      widgetcode: "siq8f9556983b0ac16c59c4070c5b3c3c1c30b81d5fde0367f801d51bfda86b175a",
+      values: {},
+      ready: function(){}
+    };
+    var d = document;
+    s = d.createElement("script");
+    s.type = "text/javascript";
+    s.id = "zsiqscript";
+    s.defer = true;
+    s.src = "https://salesiq.zoho.in/widget";
+    t = d.getElementsByTagName("script")[0];
+    t.parentNode.insertBefore(s, t);
+  </script>
   </body>
 </html>
