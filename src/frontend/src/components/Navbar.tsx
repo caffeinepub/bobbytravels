@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useQueries";
 import { Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,7 +21,6 @@ const baseNavLinks: { label: string; page: Page; ocid: string }[] = [
 export function Navbar({ currentPage, onNavigate }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isLoggedIn } = useAuth();
   const { data: isAdminData } = useIsAdmin();
 
   const isAdmin = isAdminData === true;
@@ -147,16 +145,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                       </button>
                     ))}
                   </div>
-                  {isLoggedIn && (
-                    <div className="px-5 pb-2 pt-0 border-t border-white/10 mt-auto">
-                      <p className="text-white/60 text-xs font-ui pt-4">
-                        Signed in via{" "}
-                        <span className="text-white/90 font-semibold">
-                          Internet Identity
-                        </span>
-                      </p>
-                    </div>
-                  )}
+
                   <div className="p-5 border-t border-white/10">
                     <p className="text-white/40 text-xs font-ui">
                       📞{" "}
