@@ -20,19 +20,34 @@ export const TripType = IDL.Variant({
 });
 export const FlightEnquiry = IDL.Record({
   'id' : IDL.Nat,
+  'customerName' : IDL.Text,
   'destination' : IDL.Text,
   'tripType' : TripType,
+  'customerPhone' : IDL.Text,
   'departureDate' : IDL.Text,
   'specialRequests' : IDL.Opt(IDL.Text),
   'origin' : IDL.Text,
   'passengerCount' : IDL.Nat,
   'timestamp' : IDL.Int,
+  'customerEmail' : IDL.Opt(IDL.Text),
   'returnDate' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'email' : IDL.Text,
   'phone' : IDL.Opt(IDL.Text),
+});
+export const FlightEnquiryInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'destination' : IDL.Text,
+  'tripType' : TripType,
+  'customerPhone' : IDL.Text,
+  'departureDate' : IDL.Text,
+  'specialRequests' : IDL.Opt(IDL.Text),
+  'origin' : IDL.Text,
+  'passengerCount' : IDL.Nat,
+  'customerEmail' : IDL.Opt(IDL.Text),
+  'returnDate' : IDL.Opt(IDL.Text),
 });
 
 export const idlService = IDL.Service({
@@ -48,19 +63,7 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'submitEnquiry' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Text),
-        TripType,
-        IDL.Nat,
-        IDL.Opt(IDL.Text),
-      ],
-      [],
-      [],
-    ),
+  'submitEnquiry' : IDL.Func([FlightEnquiryInput], [], []),
 });
 
 export const idlInitArgs = [];
@@ -78,19 +81,34 @@ export const idlFactory = ({ IDL }) => {
   });
   const FlightEnquiry = IDL.Record({
     'id' : IDL.Nat,
+    'customerName' : IDL.Text,
     'destination' : IDL.Text,
     'tripType' : TripType,
+    'customerPhone' : IDL.Text,
     'departureDate' : IDL.Text,
     'specialRequests' : IDL.Opt(IDL.Text),
     'origin' : IDL.Text,
     'passengerCount' : IDL.Nat,
     'timestamp' : IDL.Int,
+    'customerEmail' : IDL.Opt(IDL.Text),
     'returnDate' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'email' : IDL.Text,
     'phone' : IDL.Opt(IDL.Text),
+  });
+  const FlightEnquiryInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'destination' : IDL.Text,
+    'tripType' : TripType,
+    'customerPhone' : IDL.Text,
+    'departureDate' : IDL.Text,
+    'specialRequests' : IDL.Opt(IDL.Text),
+    'origin' : IDL.Text,
+    'passengerCount' : IDL.Nat,
+    'customerEmail' : IDL.Opt(IDL.Text),
+    'returnDate' : IDL.Opt(IDL.Text),
   });
   
   return IDL.Service({
@@ -106,19 +124,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'submitEnquiry' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Text),
-          TripType,
-          IDL.Nat,
-          IDL.Opt(IDL.Text),
-        ],
-        [],
-        [],
-      ),
+    'submitEnquiry' : IDL.Func([FlightEnquiryInput], [], []),
   });
 };
 

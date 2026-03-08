@@ -87,16 +87,19 @@ export function SearchPage() {
     try {
       // Save to backend
       await submitEnquiry({
+        customerName: form.name,
+        customerPhone: form.phone,
+        customerEmail: form.email || undefined,
         origin: form.origin,
         destination: form.destination,
         departureDate: form.departureDate,
         returnDate:
           form.tripType === "returnTrip" && form.returnDate
             ? form.returnDate
-            : null,
+            : undefined,
         tripType: tripTypeMap[form.tripType],
         passengerCount: BigInt(form.adults + form.children + form.infants),
-        specialRequests: form.specialRequests || null,
+        specialRequests: form.specialRequests || undefined,
       });
     } catch {
       // Non-fatal — still proceed to WhatsApp/email

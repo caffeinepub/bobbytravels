@@ -9,13 +9,28 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface FlightEnquiry {
     id: bigint;
+    customerName: string;
     destination: string;
     tripType: TripType;
+    customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
     passengerCount: bigint;
     timestamp: bigint;
+    customerEmail?: string;
+    returnDate?: string;
+}
+export interface FlightEnquiryInput {
+    customerName: string;
+    destination: string;
+    tripType: TripType;
+    customerPhone: string;
+    departureDate: string;
+    specialRequests?: string;
+    origin: string;
+    passengerCount: bigint;
+    customerEmail?: string;
     returnDate?: string;
 }
 export interface UserProfile {
@@ -41,5 +56,5 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    submitEnquiry(origin: string, destination: string, departureDate: string, returnDate: string | null, tripType: TripType, passengerCount: bigint, specialRequests: string | null): Promise<void>;
+    submitEnquiry(input: FlightEnquiryInput): Promise<void>;
 }

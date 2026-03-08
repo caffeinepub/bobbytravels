@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TripType, UserProfile } from "../backend.d";
+import type {
+  FlightEnquiry,
+  FlightEnquiryInput,
+  UserProfile,
+} from "../backend.d";
 import { useActor } from "./useActor";
 
 export function useGetCallerUserProfile() {
@@ -40,28 +44,24 @@ export function useSaveCallerUserProfile() {
   });
 }
 
+export function useGetAllEnquiries() {
+  const { actor, isFetching } = useActor();
+  return useQuery<FlightEnquiry[]>({
+    queryKey: ["allEnquiries"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllEnquiries();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useSubmitEnquiry() {
   const { actor } = useActor();
   return useMutation({
-    mutationFn: async (params: {
-      origin: string;
-      destination: string;
-      departureDate: string;
-      returnDate: string | null;
-      tripType: TripType;
-      passengerCount: bigint;
-      specialRequests: string | null;
-    }) => {
+    mutationFn: async (input: FlightEnquiryInput) => {
       if (!actor) throw new Error("Not connected");
-      return actor.submitEnquiry(
-        params.origin,
-        params.destination,
-        params.departureDate,
-        params.returnDate,
-        params.tripType,
-        params.passengerCount,
-        params.specialRequests,
-      );
+      return actor.submitEnquiry(input);
     },
   });
 }

@@ -1,16 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsCallerAdmin } from "@/hooks/useQueries";
 import { Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Page = "home" | "search" | "account" | "payment" | "contact";
+type Page = "home" | "search" | "account" | "payment" | "contact" | "leads";
 
 interface NavbarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
 }
 
-const navLinks: { label: string; page: Page; ocid: string }[] = [
+const baseNavLinks: { label: string; page: Page; ocid: string }[] = [
   { label: "Home", page: "home", ocid: "nav.home.link" },
   { label: "Book Flight", page: "search", ocid: "nav.search.link" },
   { label: "My Account", page: "account", ocid: "nav.account.link" },
@@ -21,6 +22,14 @@ const navLinks: { label: string; page: Page; ocid: string }[] = [
 export function Navbar({ currentPage, onNavigate }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: isAdmin } = useIsCallerAdmin();
+
+  const navLinks = isAdmin
+    ? [
+        ...baseNavLinks,
+        { label: "Leads", page: "leads" as Page, ocid: "nav.leads.link" },
+      ]
+    : baseNavLinks;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);

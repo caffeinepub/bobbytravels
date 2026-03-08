@@ -5,10 +5,11 @@ import { Navbar } from "./components/Navbar";
 import { AccountPage } from "./pages/AccountPage";
 import { ContactPage } from "./pages/ContactPage";
 import { HomePage } from "./pages/HomePage";
+import { LeadsPage } from "./pages/LeadsPage";
 import { PaymentPage } from "./pages/PaymentPage";
 import { SearchPage } from "./pages/SearchPage";
 
-type Page = "home" | "search" | "account" | "payment" | "contact";
+type Page = "home" | "search" | "account" | "payment" | "contact" | "leads";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
@@ -21,6 +22,7 @@ export default function App() {
       account: "My Account – BobbyTravels",
       payment: "Secure Payment – BobbyTravels",
       contact: "Contact Us – BobbyTravels",
+      leads: "Leads Dashboard – BobbyTravels",
     };
     document.title = titles[currentPage];
 
@@ -37,6 +39,8 @@ export default function App() {
         payment:
           "Secure UPI/Google Pay payment for your BobbyTravels flight booking.",
         contact: "Contact BobbyTravels via WhatsApp, phone, or email.",
+        leads:
+          "Admin leads dashboard – view all flight enquiries submitted through BobbyTravels.",
       };
       metaDesc.content = descs[currentPage];
     }
@@ -54,6 +58,8 @@ export default function App() {
         return <PaymentPage />;
       case "contact":
         return <ContactPage />;
+      case "leads":
+        return <LeadsPage />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }

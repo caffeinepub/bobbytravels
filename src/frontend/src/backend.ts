@@ -91,13 +91,28 @@ export class ExternalBlob {
 }
 export interface FlightEnquiry {
     id: bigint;
+    customerName: string;
     destination: string;
     tripType: TripType;
+    customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
     passengerCount: bigint;
     timestamp: bigint;
+    customerEmail?: string;
+    returnDate?: string;
+}
+export interface FlightEnquiryInput {
+    customerName: string;
+    destination: string;
+    tripType: TripType;
+    customerPhone: string;
+    departureDate: string;
+    specialRequests?: string;
+    origin: string;
+    passengerCount: bigint;
+    customerEmail?: string;
     returnDate?: string;
 }
 export interface UserProfile {
@@ -124,9 +139,9 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    submitEnquiry(origin: string, destination: string, departureDate: string, returnDate: string | null, tripType: TripType, passengerCount: bigint, specialRequests: string | null): Promise<void>;
+    submitEnquiry(input: FlightEnquiryInput): Promise<void>;
 }
-import type { FlightEnquiry as _FlightEnquiry, TripType as _TripType, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { FlightEnquiry as _FlightEnquiry, FlightEnquiryInput as _FlightEnquiryInput, TripType as _TripType, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -241,17 +256,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async submitEnquiry(arg0: string, arg1: string, arg2: string, arg3: string | null, arg4: TripType, arg5: bigint, arg6: string | null): Promise<void> {
+    async submitEnquiry(arg0: FlightEnquiryInput): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.submitEnquiry(arg0, arg1, arg2, to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), to_candid_TripType_n17(this._uploadFile, this._downloadFile, arg4), arg5, to_candid_opt_n16(this._uploadFile, this._downloadFile, arg6));
+                const result = await this.actor.submitEnquiry(to_candid_FlightEnquiryInput_n16(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.submitEnquiry(arg0, arg1, arg2, to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), to_candid_TripType_n17(this._uploadFile, this._downloadFile, arg4), arg5, to_candid_opt_n16(this._uploadFile, this._downloadFile, arg6));
+            const result = await this.actor.submitEnquiry(to_candid_FlightEnquiryInput_n16(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -291,34 +306,43 @@ function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
+    customerName: string;
     destination: string;
     tripType: _TripType;
+    customerPhone: string;
     departureDate: string;
     specialRequests: [] | [string];
     origin: string;
     passengerCount: bigint;
     timestamp: bigint;
+    customerEmail: [] | [string];
     returnDate: [] | [string];
 }): {
     id: bigint;
+    customerName: string;
     destination: string;
     tripType: TripType;
+    customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
     passengerCount: bigint;
     timestamp: bigint;
+    customerEmail?: string;
     returnDate?: string;
 } {
     return {
         id: value.id,
+        customerName: value.customerName,
         destination: value.destination,
         tripType: from_candid_TripType_n6(_uploadFile, _downloadFile, value.tripType),
+        customerPhone: value.customerPhone,
         departureDate: value.departureDate,
         specialRequests: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.specialRequests)),
         origin: value.origin,
         passengerCount: value.passengerCount,
         timestamp: value.timestamp,
+        customerEmail: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.customerEmail)),
         returnDate: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.returnDate))
     };
 }
@@ -343,17 +367,17 @@ function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_vec_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FlightEnquiry>): Array<FlightEnquiry> {
     return value.map((x)=>from_candid_FlightEnquiry_n4(_uploadFile, _downloadFile, x));
 }
-function to_candid_TripType_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): _TripType {
-    return to_candid_variant_n18(_uploadFile, _downloadFile, value);
+function to_candid_FlightEnquiryInput_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: FlightEnquiryInput): _FlightEnquiryInput {
+    return to_candid_record_n17(_uploadFile, _downloadFile, value);
+}
+function to_candid_TripType_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): _TripType {
+    return to_candid_variant_n19(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserProfile_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
     return to_candid_record_n15(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
-}
-function to_candid_opt_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
-    return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
@@ -370,7 +394,43 @@ function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         phone: value.phone ? candid_some(value.phone) : candid_none()
     };
 }
-function to_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): {
+function to_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    customerName: string;
+    destination: string;
+    tripType: TripType;
+    customerPhone: string;
+    departureDate: string;
+    specialRequests?: string;
+    origin: string;
+    passengerCount: bigint;
+    customerEmail?: string;
+    returnDate?: string;
+}): {
+    customerName: string;
+    destination: string;
+    tripType: _TripType;
+    customerPhone: string;
+    departureDate: string;
+    specialRequests: [] | [string];
+    origin: string;
+    passengerCount: bigint;
+    customerEmail: [] | [string];
+    returnDate: [] | [string];
+} {
+    return {
+        customerName: value.customerName,
+        destination: value.destination,
+        tripType: to_candid_TripType_n18(_uploadFile, _downloadFile, value.tripType),
+        customerPhone: value.customerPhone,
+        departureDate: value.departureDate,
+        specialRequests: value.specialRequests ? candid_some(value.specialRequests) : candid_none(),
+        origin: value.origin,
+        passengerCount: value.passengerCount,
+        customerEmail: value.customerEmail ? candid_some(value.customerEmail) : candid_none(),
+        returnDate: value.returnDate ? candid_some(value.returnDate) : candid_none()
+    };
+}
+function to_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): {
     isFlexible: null;
 } | {
     returnTrip: null;

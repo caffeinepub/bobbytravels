@@ -12,13 +12,28 @@ import type { Principal } from '@icp-sdk/core/principal';
 
 export interface FlightEnquiry {
   'id' : bigint,
+  'customerName' : string,
   'destination' : string,
   'tripType' : TripType,
+  'customerPhone' : string,
   'departureDate' : string,
   'specialRequests' : [] | [string],
   'origin' : string,
   'passengerCount' : bigint,
   'timestamp' : bigint,
+  'customerEmail' : [] | [string],
+  'returnDate' : [] | [string],
+}
+export interface FlightEnquiryInput {
+  'customerName' : string,
+  'destination' : string,
+  'tripType' : TripType,
+  'customerPhone' : string,
+  'departureDate' : string,
+  'specialRequests' : [] | [string],
+  'origin' : string,
+  'passengerCount' : bigint,
+  'customerEmail' : [] | [string],
   'returnDate' : [] | [string],
 }
 export type TripType = { 'isFlexible' : null } |
@@ -41,10 +56,7 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'submitEnquiry' : ActorMethod<
-    [string, string, string, [] | [string], TripType, bigint, [] | [string]],
-    undefined
-  >,
+  'submitEnquiry' : ActorMethod<[FlightEnquiryInput], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

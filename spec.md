@@ -1,23 +1,38 @@
 # BobbyTravels
 
 ## Current State
-The SearchPage has plain text `<Input>` fields for Origin and Destination where users type freeform text. There is no autocomplete or dropdown list of airports/cities.
+- Full flight enquiry form (SearchPage) with origin, destination, trip type, dates, passengers (adults/children/infants), special requests, and customer contact details.
+- Backend stores FlightEnquiry with: id, origin, destination, departureDate, returnDate, tripType, passengerCount, specialRequests, timestamp.
+- `submitEnquiry` and `getAllEnquiries` backend methods exist.
+- `getAllEnquiries` is admin-only.
+- No leads dashboard page in the frontend -- admin cannot view saved leads.
+- Customer name, phone, email are NOT stored in the backend (only used in WhatsApp/mailto links).
 
 ## Requested Changes (Diff)
 
 ### Add
-- A comprehensive list of major world airports/cities (IATA code + city + country) as a static data array in a new file `src/data/airports.ts`.
-- A reusable `AirportCombobox` component that renders a searchable combobox (type-to-filter) showing airport name, city, IATA code, and country. Uses Popover + Command (cmdk) from shadcn for the dropdown UI.
+- `customerName`, `customerPhone`, `customerEmail` fields to `FlightEnquiry` type in backend.
+- `LeadsPage` in frontend: admin-only page showing a table/list of all submitted leads with customer name, phone, email, route, dates, trip type, passengers, special requests, timestamp.
+- Navigation link to Leads page (visible only when logged in as admin).
+- `useGetAllEnquiries` query hook.
+- Lead count badge on the nav link.
 
 ### Modify
-- Replace the Origin (`search.origin.input`) and Destination (`search.destination.input`) plain text inputs in `SearchPage.tsx` with the new `AirportCombobox` component.
-- The selected value stored in `form.origin` / `form.destination` should be a human-readable string like "Delhi (DEL) - India" for use in the WhatsApp and email messages.
+- `submitEnquiry` backend function to accept and store customerName, customerPhone, customerEmail.
+- `useSubmitEnquiry` mutation in frontend to pass customer name, phone, email.
+- `SearchPage` handleSubmit to pass customer contact fields to `submitEnquiry`.
+- `backend.d.ts` to reflect updated FlightEnquiry and submitEnquiry signature.
+- App.tsx to add "leads" page route and pass admin state down to Navbar.
 
 ### Remove
-- Nothing removed from existing features.
+- Nothing removed.
 
 ## Implementation Plan
-1. Create `src/frontend/src/data/airports.ts` with a comprehensive list of ~200+ major airports worldwide (IATA, name, city, country). Include all major Indian cities prominently plus popular international destinations.
-2. Create `src/frontend/src/components/AirportCombobox.tsx` — a Popover + CommandInput + CommandList based searchable dropdown. Filters by city, airport name, or IATA code as user types. Shows IATA badge, city, and country in each item. Closes on selection. Has a placeholder and a clear button.
-3. Update `SearchPage.tsx` to import and use `AirportCombobox` for the From and To fields, replacing the plain Input. `form.origin` and `form.destination` hold the selected label string.
-4. Validate (typecheck + build).
+1. Update `main.mo`: add customerName, customerPhone, customerEmail to FlightEnquiry type; update submitEnquiry params.
+2. Update `backend.d.ts`: reflect new FlightEnquiry fields and submitEnquiry signature.
+3. Add `useGetAllEnquiries` hook in useQueries.ts.
+4. Update `useSubmitEnquiry` mutation to pass new fields.
+5. Update SearchPage handleSubmit to pass name/phone/email to submitEnquiry.
+6. Create `LeadsPage.tsx`: admin gate, table of leads with all fields, empty state, loading state.
+7. Update App.tsx to add "leads" page type and render LeadsPage.
+8. Update Navbar to show "Leads" link only for admins.
