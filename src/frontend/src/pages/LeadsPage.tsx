@@ -15,8 +15,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
-import { useGetAllEnquiries, useUpdateEnquiryStatus } from "@/hooks/useQueries";
+import {
+  useGetAllEnquiries,
+  useIsAdmin,
+  useUpdateEnquiryStatus,
+} from "@/hooks/useQueries";
 import {
   ArrowRight,
   Calendar,
@@ -390,9 +393,8 @@ function LeadsSkeleton() {
 }
 
 export function LeadsPage() {
-  const { session } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const { data: enquiries, isLoading } = useGetAllEnquiries();
-  const isAdmin = session?.isAdmin === true;
 
   // Sort newest first — cast to extended FlightEnquiry to access new fields
   const sorted = (enquiries as FlightEnquiry[] | undefined)

@@ -1,17 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useQueries";
 import { Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Page =
-  | "home"
-  | "search"
-  | "account"
-  | "payment"
-  | "contact"
-  | "leads"
-  | "users";
+type Page = "home" | "search" | "payment" | "contact" | "leads" | "users";
 
 interface NavbarProps {
   currentPage: Page;
@@ -21,7 +15,6 @@ interface NavbarProps {
 const baseNavLinks: { label: string; page: Page; ocid: string }[] = [
   { label: "Home", page: "home", ocid: "nav.home.link" },
   { label: "Book Flight", page: "search", ocid: "nav.search.link" },
-  { label: "My Account", page: "account", ocid: "nav.account.link" },
   { label: "Payment", page: "payment", ocid: "nav.payment.link" },
   { label: "Contact", page: "contact", ocid: "nav.contact.link" },
 ];
@@ -29,9 +22,10 @@ const baseNavLinks: { label: string; page: Page; ocid: string }[] = [
 export function Navbar({ currentPage, onNavigate }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { session } = useAuth();
+  const { isLoggedIn } = useAuth();
+  const { data: isAdminData } = useIsAdmin();
 
-  const isAdmin = session?.isAdmin === true;
+  const isAdmin = isAdminData === true;
 
   const navLinks = isAdmin
     ? [
@@ -153,12 +147,12 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                       </button>
                     ))}
                   </div>
-                  {session && (
+                  {isLoggedIn && (
                     <div className="px-5 pb-2 pt-0 border-t border-white/10 mt-auto">
                       <p className="text-white/60 text-xs font-ui pt-4">
-                        Signed in as{" "}
+                        Signed in via{" "}
                         <span className="text-white/90 font-semibold">
-                          {session.name}
+                          Internet Identity
                         </span>
                       </p>
                     </div>

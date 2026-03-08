@@ -11,21 +11,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  useGetMyProfile,
+  useInitializeAccessControl,
+  useIsAdmin,
+  useSaveMyProfile,
+} from "@/hooks/useQueries";
+import { getSecretParameter } from "@/utils/urlParams";
 import {
   ArrowRight,
   CheckCircle,
-  Eye,
-  EyeOff,
   LayoutDashboard,
   Loader2,
   LogIn,
   LogOut,
-  Phone,
   Save,
   Shield,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -45,298 +47,84 @@ interface AccountPageProps {
   onNavigate?: (page: Page) => void;
 }
 
-function PasswordInput({
-  id,
-  value,
-  onChange,
-  placeholder,
-  required,
-  autoComplete,
-  "data-ocid": ocid,
-}: {
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  autoComplete?: string;
-  "data-ocid"?: string;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative">
-      <Input
-        id={id}
-        data-ocid={ocid}
-        type={show ? "text" : "password"}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        autoComplete={autoComplete}
-        className="h-11 rounded-xl pr-10"
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        onClick={() => setShow((s) => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label={show ? "Hide password" : "Show password"}
-      >
-        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </button>
-    </div>
-  );
-}
-
-function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
-  const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast.error("Please enter your email and password.");
-      return;
-    }
-    setLoading(true);
-    const result = await login(email.trim(), password);
-    setLoading(false);
-    if ("ok" in result) {
-      toast.success("Welcome back!");
-      onSuccess?.();
-    } else {
-      toast.error(result.err);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="loginEmail" className="text-sm font-ui font-medium">
-          Email Address
-        </Label>
-        <Input
-          id="loginEmail"
-          data-ocid="account.login.email.input"
-          type="email"
-          placeholder="you@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="loginPassword" className="text-sm font-ui font-medium">
-          Password
-        </Label>
-        <PasswordInput
-          id="loginPassword"
-          data-ocid="account.login.password.input"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Your password"
-          required
-          autoComplete="current-password"
-        />
-      </div>
-      <Button
-        type="submit"
-        data-ocid="account.login.submit_button"
-        disabled={loading}
-        className="w-full h-11 bg-gold hover:bg-gold-dark text-navy-dark font-display font-bold text-base shadow-gold hover:shadow-none rounded-xl"
-      >
-        {loading ? (
-          <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-        ) : (
-          <LogIn className="mr-2 w-4 h-4" />
-        )}
-        {loading ? "Signing in..." : "Sign In"}
-      </Button>
-    </form>
-  );
-}
-
-function RegisterForm({ onSuccess }: { onSuccess?: () => void }) {
-  const { register } = useAuth();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    phone: "",
-  });
-  const [loading, setLoading] = useState(false);
-
-  const set =
-    (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.email || !form.password) {
-      toast.error("Name, email and password are required.");
-      return;
-    }
-    if (form.password !== form.confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-    if (form.password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
-      return;
-    }
-    setLoading(true);
-    const result = await register(
-      form.email.trim(),
-      form.password,
-      form.name.trim(),
-      form.phone.trim() || undefined,
-    );
-    setLoading(false);
-    if ("ok" in result) {
-      toast.success("Account created! Welcome to BobbyTravels.");
-      onSuccess?.();
-    } else {
-      toast.error(result.err);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="regName" className="text-sm font-ui font-medium">
-          Full Name <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="regName"
-          data-ocid="account.register.name.input"
-          placeholder="Raj Kumar"
-          value={form.name}
-          onChange={set("name")}
-          required
-          autoComplete="name"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="regEmail" className="text-sm font-ui font-medium">
-          Email Address <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="regEmail"
-          data-ocid="account.register.email.input"
-          type="email"
-          placeholder="you@email.com"
-          value={form.email}
-          onChange={set("email")}
-          required
-          autoComplete="email"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="regPassword" className="text-sm font-ui font-medium">
-            Password <span className="text-destructive">*</span>
-          </Label>
-          <PasswordInput
-            id="regPassword"
-            data-ocid="account.register.password.input"
-            value={form.password}
-            onChange={set("password")}
-            placeholder="Min. 6 characters"
-            required
-            autoComplete="new-password"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="regConfirm" className="text-sm font-ui font-medium">
-            Confirm Password <span className="text-destructive">*</span>
-          </Label>
-          <PasswordInput
-            id="regConfirm"
-            data-ocid="account.register.confirm.input"
-            value={form.confirmPassword}
-            onChange={set("confirmPassword")}
-            placeholder="Repeat password"
-            required
-            autoComplete="new-password"
-          />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="regPhone" className="text-sm font-ui font-medium">
-          Phone / WhatsApp{" "}
-          <span className="text-muted-foreground font-normal">(optional)</span>
-        </Label>
-        <Input
-          id="regPhone"
-          data-ocid="account.register.phone.input"
-          type="tel"
-          placeholder="+91 XXXXX XXXXX"
-          value={form.phone}
-          onChange={set("phone")}
-          autoComplete="tel"
-          className="h-11 rounded-xl"
-        />
-      </div>
-      <Button
-        type="submit"
-        data-ocid="account.register.submit_button"
-        disabled={loading}
-        className="w-full h-11 bg-navy hover:bg-navy-light text-white font-display font-bold text-base rounded-xl"
-      >
-        {loading ? (
-          <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-        ) : (
-          <UserPlus className="mr-2 w-4 h-4" />
-        )}
-        {loading ? "Creating account..." : "Create Account"}
-      </Button>
-    </form>
-  );
-}
-
 export function AccountPage({ onNavigate }: AccountPageProps) {
-  const { session, isLoggedIn, logout, updateProfile } = useAuth();
+  const { isLoggedIn, isInitializing, principal, login, logout } = useAuth();
+  const { data: isAdmin, isLoading: isAdminLoading } = useIsAdmin();
+  const { data: profile } = useGetMyProfile();
+  const saveProfileMutation = useSaveMyProfile();
+  const claimAdminMutation = useInitializeAccessControl();
 
-  const [formName, setFormName] = useState(session?.name || "");
-  const [formPhone, setFormPhone] = useState(session?.phone || "");
-  const [saving, setSaving] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Keep form in sync with session
-  const handleSessionLoad = () => {
-    setFormName(session?.name || "");
-    setFormPhone(session?.phone || "");
-  };
+  // Sync form fields when profile loads
+  const profileName = profile?.name ?? "";
+  const profileEmail = profile?.email ?? "";
+  const profilePhone = profile?.phone ?? "";
+
+  const displayName = formName || profileName || "Traveler";
+
+  const initials =
+    displayName
+      .split(" ")
+      .slice(0, 2)
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase() || "?";
+
+  const truncatedPrincipal = principal
+    ? `${principal.slice(0, 8)}...${principal.slice(-4)}`
+    : "";
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) {
+    const name = formName || profileName;
+    const email = formEmail || profileEmail;
+    if (!name.trim()) {
       toast.error("Name is required.");
       return;
     }
-    setSaving(true);
-    updateProfile(formName.trim(), formPhone.trim() || undefined);
-    setSaving(false);
-    setSaved(true);
-    toast.success("Profile updated!");
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await saveProfileMutation.mutateAsync({
+        name: name.trim(),
+        email: email.trim(),
+        phone: (formPhone || profilePhone).trim() || undefined,
+      });
+      setSaved(true);
+      toast.success("Profile updated!");
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      toast.error("Failed to save profile.");
+    }
   };
 
-  const initials = (session?.name || "?")
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
+  const handleClaimAdmin = async () => {
+    const token = getSecretParameter("caffeineAdminToken");
+    if (!token) {
+      toast.error(
+        "Admin token not found. Please open this page via the admin activation link.",
+      );
+      return;
+    }
+    try {
+      await claimAdminMutation.mutateAsync(token);
+      toast.success("Admin access activated!");
+    } catch {
+      toast.error("Failed to claim admin access. The token may be invalid.");
+    }
+  };
+
+  if (isInitializing) {
+    return (
+      <main className="min-h-screen bg-sky-pale pt-24 pb-16">
+        <div className="max-w-md mx-auto px-4 sm:px-6 flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-navy" />
+        </div>
+      </main>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -352,7 +140,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 My <span className="text-navy">Account</span>
               </h1>
               <p className="text-muted-foreground">
-                Sign in or create an account to manage your bookings.
+                Sign in to manage your bookings and preferences.
               </p>
             </div>
 
@@ -365,37 +153,31 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   Welcome to BobbyTravels
                 </CardTitle>
                 <CardDescription className="text-white/60 mt-1 text-sm">
-                  Book smarter, travel better.
+                  Secure, password-free login via Internet Identity
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="p-6">
-                <Tabs defaultValue="login" data-ocid="account.auth.tab">
-                  <TabsList className="w-full bg-secondary h-11 p-1 rounded-xl mb-6">
-                    <TabsTrigger
-                      value="login"
-                      data-ocid="account.login.tab"
-                      className="flex-1 text-sm font-ui rounded-lg data-[state=active]:bg-navy data-[state=active]:text-white"
-                    >
-                      Sign In
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="register"
-                      data-ocid="account.register.tab"
-                      className="flex-1 text-sm font-ui rounded-lg data-[state=active]:bg-navy data-[state=active]:text-white"
-                    >
-                      Create Account
-                    </TabsTrigger>
-                  </TabsList>
+              <CardContent className="p-6 space-y-5">
+                <Button
+                  data-ocid="account.ii_login.button"
+                  onClick={login}
+                  className="w-full h-12 bg-gold hover:bg-gold-dark text-navy-dark font-display font-bold text-base shadow-gold hover:shadow-none rounded-xl gap-2"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Sign In with Internet Identity
+                </Button>
 
-                  <TabsContent value="login">
-                    <LoginForm onSuccess={handleSessionLoad} />
-                  </TabsContent>
-
-                  <TabsContent value="register">
-                    <RegisterForm onSuccess={handleSessionLoad} />
-                  </TabsContent>
-                </Tabs>
+                <div className="bg-secondary/60 rounded-xl p-4 text-xs text-muted-foreground font-ui leading-relaxed">
+                  <p className="font-semibold text-foreground mb-1">
+                    What is Internet Identity?
+                  </p>
+                  <p>
+                    Internet Identity is a secure, biometric login system built
+                    on the Internet Computer. No passwords — use your
+                    fingerprint, face ID, or device PIN. Your identity is
+                    private and cannot be tracked across sites.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -424,23 +206,17 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-display font-bold text-white text-xl truncate">
-                    {session?.name || "Traveler"}
+                    {displayName}
                   </p>
-                  <p className="text-white/60 text-sm font-ui truncate">
-                    {session?.email}
+                  <p className="text-white/60 text-xs font-mono mt-0.5 truncate">
+                    {truncatedPrincipal}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    {session?.isAdmin && (
+                    {isAdmin && (
                       <Badge className="bg-gold text-navy-dark text-xs font-ui font-semibold px-2 py-0.5 rounded-full border-0">
                         <Shield className="w-3 h-3 mr-1" />
                         Admin
                       </Badge>
-                    )}
-                    {session?.phone && (
-                      <span className="text-white/50 text-xs font-ui flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {session.phone}
-                      </span>
                     )}
                   </div>
                 </div>
@@ -459,7 +235,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
           </Card>
 
           {/* Admin Dashboard Card */}
-          {session?.isAdmin && (
+          {isAdmin && (
             <Card
               data-ocid="account.admin.card"
               className="border-0 shadow-flight rounded-3xl overflow-hidden"
@@ -507,14 +283,53 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
             </Card>
           )}
 
+          {/* Claim Admin Access (only if NOT already admin and not loading) */}
+          {!isAdminLoading && !isAdmin && (
+            <Card className="border border-dashed border-gold/40 shadow-none rounded-3xl bg-transparent">
+              <CardContent className="px-6 py-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Shield className="w-4 h-4 text-gold" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-ui font-semibold text-foreground mb-1">
+                      Activate Admin Access
+                    </p>
+                    <p className="text-xs text-muted-foreground font-ui mb-3 leading-relaxed">
+                      If you have an admin activation link, click below to
+                      unlock the Leads Dashboard.
+                    </p>
+                    <Button
+                      data-ocid="account.claim_admin.button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClaimAdmin}
+                      disabled={claimAdminMutation.isPending}
+                      className="border-gold/40 text-gold hover:bg-gold hover:text-navy-dark hover:border-gold font-ui font-semibold rounded-xl h-9 gap-2 text-xs"
+                    >
+                      {claimAdminMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Shield className="w-3.5 h-3.5" />
+                      )}
+                      {claimAdminMutation.isPending
+                        ? "Activating..."
+                        : "Activate Admin Access"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Edit Profile */}
           <Card className="border-0 shadow-flight rounded-3xl">
             <CardHeader className="pb-3 px-6 pt-6">
               <CardTitle className="font-display text-xl text-foreground">
-                Edit Profile
+                Profile Details
               </CardTitle>
               <CardDescription>
-                Update your name and phone number.
+                Update your name, email and phone number.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6">
@@ -529,10 +344,9 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   <Input
                     id="profileName"
                     data-ocid="account.profile.name.input"
-                    placeholder="Your full name"
+                    placeholder={profileName || "Your full name"}
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    required
                     autoComplete="name"
                     className="h-11 rounded-xl"
                   />
@@ -548,14 +362,12 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   <Input
                     id="profileEmail"
                     type="email"
-                    value={session?.email || ""}
-                    readOnly
-                    disabled
-                    className="h-11 rounded-xl bg-muted cursor-not-allowed"
+                    placeholder={profileEmail || "you@email.com"}
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    autoComplete="email"
+                    className="h-11 rounded-xl"
                   />
-                  <p className="text-xs text-muted-foreground font-ui">
-                    Email cannot be changed after registration.
-                  </p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -572,7 +384,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     id="profilePhone"
                     data-ocid="account.profile.phone.input"
                     type="tel"
-                    placeholder="+91 XXXXX XXXXX"
+                    placeholder={profilePhone || "+91 XXXXX XXXXX"}
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
                     autoComplete="tel"
@@ -583,17 +395,21 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 <Button
                   type="submit"
                   data-ocid="account.profile.save_button"
-                  disabled={saving}
+                  disabled={saveProfileMutation.isPending}
                   className="w-full bg-navy hover:bg-navy-light text-white font-ui font-semibold rounded-xl h-11"
                 >
-                  {saving ? (
+                  {saveProfileMutation.isPending ? (
                     <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                   ) : saved ? (
                     <CheckCircle className="mr-2 w-4 h-4" />
                   ) : (
                     <Save className="mr-2 w-4 h-4" />
                   )}
-                  {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
+                  {saveProfileMutation.isPending
+                    ? "Saving..."
+                    : saved
+                      ? "Saved!"
+                      : "Save Changes"}
                 </Button>
               </form>
             </CardContent>
@@ -604,7 +420,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
             <CardContent className="px-6 py-5">
               <Separator className="mb-4" />
               <p className="text-xs text-muted-foreground font-ui text-center leading-relaxed">
-                Your data is stored securely.{" "}
+                Your identity is stored securely on the Internet Computer.{" "}
                 <button
                   type="button"
                   data-ocid="account.logout.secondary_button"
@@ -613,10 +429,24 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 >
                   Sign out
                 </button>{" "}
-                to leave this device.
+                to disconnect from this device.
               </p>
             </CardContent>
           </Card>
+
+          {/* Principal info */}
+          {principal && (
+            <Card className="border border-dashed border-border/40 shadow-none rounded-3xl bg-transparent">
+              <CardContent className="px-6 py-4">
+                <p className="text-xs text-muted-foreground font-ui mb-1 font-semibold">
+                  Your Principal ID
+                </p>
+                <p className="text-xs font-mono text-foreground/70 break-all leading-relaxed">
+                  {principal}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
     </main>

@@ -16,7 +16,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-type Page = "home" | "search" | "account" | "payment" | "contact";
+type Page = "home" | "search" | "payment" | "contact";
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;

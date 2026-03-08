@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
 import { useSubmitEnquiry } from "@/hooks/useQueries";
-import { CalendarDays, Loader2, Plane, Send, Users } from "lucide-react";
+import { CalendarDays, Loader2, LogIn, Plane, Send, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ interface FormState {
 
 export function SearchPage() {
   const { mutateAsync: submitEnquiry, isPending } = useSubmitEnquiry();
+  const { isLoggedIn, login } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState<FormState>({
     origin: "",
@@ -90,6 +92,18 @@ export function SearchPage() {
       !form.phone
     ) {
       toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    // Require Internet Identity login to submit
+    if (!isLoggedIn) {
+      toast.error("Please sign in first to submit your enquiry.", {
+        action: {
+          label: "Sign In",
+          onClick: login,
+        },
+      });
+      login();
       return;
     }
 
@@ -655,16 +669,31 @@ export function SearchPage() {
                 >
                   {isPending ? (
                     <Loader2 className="mr-2 w-5 h-5 animate-spin" />
-                  ) : (
+                  ) : isLoggedIn ? (
                     <Send className="mr-2 w-5 h-5" />
+                  ) : (
+                    <LogIn className="mr-2 w-5 h-5" />
                   )}
-                  {isPending ? "Sending..." : "Get Deals on WhatsApp ✈️"}
+                  {isPending
+                    ? "Sending..."
+                    : isLoggedIn
+                      ? "Get Deals on WhatsApp ✈️"
+                      : "Sign In & Submit Enquiry"}
                 </Button>
 
-                <p className="text-center text-xs text-muted-foreground">
-                  By submitting, you'll be redirected to WhatsApp to receive
-                  personalized flight deals from BobbyTravels.
-                </p>
+                {!isLoggedIn && (
+                  <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <LogIn className="w-3 h-3" />
+                    Sign in required to submit. We use Internet Identity for
+                    secure, password-free login.
+                  </p>
+                )}
+                {isLoggedIn && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    By submitting, you'll be redirected to WhatsApp to receive
+                    personalized flight deals from BobbyTravels.
+                  </p>
+                )}
               </form>
             </CardContent>
           </Card>
