@@ -6,10 +6,10 @@ import Array "mo:core/Array";
 import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+import Iter "mo:core/Iter";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
-
+import Prim "mo:prim";
 
 actor {
   // Include authorization component
@@ -24,24 +24,46 @@ actor {
 
   let userProfiles = Map.empty<Principal, UserProfile>();
 
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Caller has to be a user");
+  func ensureUserRegistered(caller : Principal) {
+    switch (accessControlState.userRoles.get(caller)) {
+      case (null) {
+        accessControlState.userRoles.add(caller, #user);
+      };
+      case (?#guest) {
+        accessControlState.userRoles.add(caller, #user);
+      };
+      case (_) {};
     };
+  };
+
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: View other user profile can only be performed by admin");
+    if (caller.isAnonymous() and caller != user) {
+      Runtime.trap("Unauthorized: Only the user or admin can view this profile (anonymous caller)");
     };
-    userProfiles.get(user);
+
+    if (caller == user) {
+      return userProfiles.get(user);
+    };
+
+    switch (accessControlState.userRoles.get(caller)) {
+      case (?#admin) {
+        userProfiles.get(user);
+      };
+      case (_) {
+        Runtime.trap("Unauthorized: Only the user or admin can view this profile");
+      };
+    };
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous callers cannot register profiles");
     };
+    ensureUserRegistered(caller);
     userProfiles.add(caller, profile);
   };
 
@@ -83,9 +105,10 @@ actor {
   let flightEnquiries = List.empty<FlightEnquiry>();
 
   public shared ({ caller }) func submitEnquiry(input : FlightEnquiryInput) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only users can submit enquiries");
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous callers cannot submit enquiries");
     };
+    ensureUserRegistered(caller);
 
     let enquiry : FlightEnquiry = {
       id = nextEnquiryId;
@@ -107,9 +130,32 @@ actor {
   };
 
   public query ({ caller }) func getAllEnquiries() : async [FlightEnquiry] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all enquiries");
+    switch (accessControlState.userRoles.get(caller)) {
+      case (?#admin) {
+        flightEnquiries.reverse().toArray();
+      };
+      case (_) {
+        Runtime.trap("Unauthorized: Only admins can view all enquiries");
+      };
     };
-    flightEnquiries.reverse().toArray();
+  };
+
+  public shared ({ caller }) func claimAdminAccess(secret : Text) : async () {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous callers cannot claim admin access");
+    };
+
+    switch (Prim.envVar<system>("CAFFEINE_ADMIN_TOKEN")) {
+      case (null) {
+        Runtime.trap("Admin token not configured");
+      };
+      case (?token) {
+        if (secret == token) {
+          accessControlState.userRoles.add(caller, #admin);
+        } else {
+          Runtime.trap("Invalid admin token");
+        };
+      };
+    };
   };
 };

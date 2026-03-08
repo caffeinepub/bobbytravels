@@ -1,38 +1,45 @@
 # BobbyTravels
 
 ## Current State
-- Full flight enquiry form (SearchPage) with origin, destination, trip type, dates, passengers (adults/children/infants), special requests, and customer contact details.
-- Backend stores FlightEnquiry with: id, origin, destination, departureDate, returnDate, tripType, passengerCount, specialRequests, timestamp.
-- `submitEnquiry` and `getAllEnquiries` backend methods exist.
-- `getAllEnquiries` is admin-only.
-- No leads dashboard page in the frontend -- admin cannot view saved leads.
-- Customer name, phone, email are NOT stored in the backend (only used in WhatsApp/mailto links).
+- Login uses Internet Identity (blockchain passkey) -- confusing for non-technical users
+- User profiles stored by Principal (blockchain identity)
+- Leads stored in backend, but only accessible after Internet Identity login + admin token claim
+- Admin access requires knowing a secret token and claiming it via a hidden UI
+- No user management dashboard for admin
 
 ## Requested Changes (Diff)
 
 ### Add
-- `customerName`, `customerPhone`, `customerEmail` fields to `FlightEnquiry` type in backend.
-- `LeadsPage` in frontend: admin-only page showing a table/list of all submitted leads with customer name, phone, email, route, dates, trip type, passengers, special requests, timestamp.
-- Navigation link to Leads page (visible only when logged in as admin).
-- `useGetAllEnquiries` query hook.
-- Lead count badge on the nav link.
+- Simple email + password registration and login (no Internet Identity)
+- Hardcoded admin account: email `adityabholath@gmail.com`, password set at first login
+- Admin user management page: view all registered users, their profiles, registration date
+- Leads database: structured storage with customer name, phone, email, origin, destination, dates, trip type, passengers, special requests, timestamp, status (New/Contacted/Booked/Closed)
+- Admin can update lead status from the Leads Dashboard
+- Passengers field in FlightEnquiry updated to include adults, children, infants breakdown
 
 ### Modify
-- `submitEnquiry` backend function to accept and store customerName, customerPhone, customerEmail.
-- `useSubmitEnquiry` mutation in frontend to pass customer name, phone, email.
-- `SearchPage` handleSubmit to pass customer contact fields to `submitEnquiry`.
-- `backend.d.ts` to reflect updated FlightEnquiry and submitEnquiry signature.
-- App.tsx to add "leads" page route and pass admin state down to Navbar.
+- Replace Internet Identity login with email/password form (no external popup)
+- AccountPage: show simple email/password login form; after login show profile + admin dashboard links
+- Navbar: show "Leads" and "Users" links only when admin is logged in
+- Admin is identified by a hardcoded principal email (`adityabholath@gmail.com`) -- first user to register with that email gets admin role automatically
+- FlightEnquiryInput: add adultsCount, childrenCount, infantsCount fields
 
 ### Remove
-- Nothing removed.
+- Internet Identity dependency (useInternetIdentity hook usage in login flow)
+- Admin token claim UI (replaced by automatic admin role assignment by email)
 
 ## Implementation Plan
-1. Update `main.mo`: add customerName, customerPhone, customerEmail to FlightEnquiry type; update submitEnquiry params.
-2. Update `backend.d.ts`: reflect new FlightEnquiry fields and submitEnquiry signature.
-3. Add `useGetAllEnquiries` hook in useQueries.ts.
-4. Update `useSubmitEnquiry` mutation to pass new fields.
-5. Update SearchPage handleSubmit to pass name/phone/email to submitEnquiry.
-6. Create `LeadsPage.tsx`: admin gate, table of leads with all fields, empty state, loading state.
-7. Update App.tsx to add "leads" page type and render LeadsPage.
-8. Update Navbar to show "Leads" link only for admins.
+1. Backend: Replace Internet Identity with email/password auth system
+   - Register: store hashed password + email + profile
+   - Login: verify credentials, return session token stored in localStorage
+   - Auto-assign admin role to adityabholath@gmail.com on registration
+   - Add getAllUsers() for admin to list all registered users
+   - Add updateEnquiryStatus() for admin to update lead status
+   - Update FlightEnquiry to include adultsCount, childrenCount, infantsCount and status field
+2. Frontend: Replace Internet Identity login with email/password form
+   - Simple card with Email + Password fields, Register/Login toggle
+   - Remove all useInternetIdentity references
+   - Add UsersPage for admin: table of all registered users
+   - Update Navbar to show "Users" link for admin
+   - Update LeadsPage to show status dropdown per lead
+   - Update SearchPage passenger counts to pass adults/children/infants breakdown

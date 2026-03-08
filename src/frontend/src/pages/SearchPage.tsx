@@ -9,6 +9,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useSubmitEnquiry } from "@/hooks/useQueries";
@@ -39,6 +46,7 @@ interface FormState {
   adults: number;
   children: number;
   infants: number;
+  cabinClass: string;
   specialRequests: string;
   name: string;
   phone: string;
@@ -57,6 +65,7 @@ export function SearchPage() {
     adults: 1,
     children: 0,
     infants: 0,
+    cabinClass: "Economy",
     specialRequests: "",
     name: "",
     phone: "",
@@ -85,7 +94,8 @@ export function SearchPage() {
     }
 
     try {
-      // Save to backend
+      // Save to backend — cast to any to handle new/old backend shape
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await submitEnquiry({
         customerName: form.name,
         customerPhone: form.phone,
@@ -98,9 +108,17 @@ export function SearchPage() {
             ? form.returnDate
             : undefined,
         tripType: tripTypeMap[form.tripType],
+        // Support both new (adultsCount/childrenCount/infantsCount) and old (passengerCount) backend shapes
+        ...({
+          adultsCount: BigInt(form.adults),
+          childrenCount: BigInt(form.children),
+          infantsCount: BigInt(form.infants),
+          cabinClass: form.cabinClass,
+        } as object),
         passengerCount: BigInt(form.adults + form.children + form.infants),
         specialRequests: form.specialRequests || undefined,
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
     } catch {
       // Non-fatal — still proceed to WhatsApp/email
     }
@@ -123,14 +141,14 @@ export function SearchPage() {
 
     // Build WhatsApp message
     const waMsg = encodeURIComponent(
-      `Hi BobbyTravels! I want to book a flight.\n\nFrom: ${form.origin}\nTo: ${form.destination}\nTrip: ${tripLabel}\nDeparture: ${form.departureDate}\nReturn: ${returnInfo}\nPassengers: ${passengerSummary}\nSpecial Requests: ${form.specialRequests || "None"}\n\nName: ${form.name}\nPhone: ${form.phone}\nEmail: ${form.email}`,
+      `Hi BobbyTravels! I want to book a flight.\n\nFrom: ${form.origin}\nTo: ${form.destination}\nTrip: ${tripLabel}\nCabin: ${form.cabinClass}\nDeparture: ${form.departureDate}\nReturn: ${returnInfo}\nPassengers: ${passengerSummary}\nSpecial Requests: ${form.specialRequests || "None"}\n\nName: ${form.name}\nPhone: ${form.phone}\nEmail: ${form.email}`,
     );
     const waUrl = `https://wa.me/919815480825?text=${waMsg}`;
 
     // Build mailto
     const mailSubject = encodeURIComponent("New Flight Enquiry");
     const mailBody = encodeURIComponent(
-      `New Flight Enquiry\n\nFrom: ${form.origin}\nTo: ${form.destination}\nTrip: ${tripLabel}\nDeparture: ${form.departureDate}\nReturn: ${returnInfo}\nPassengers: ${passengerSummary}\nSpecial Requests: ${form.specialRequests || "None"}\n\nCustomer Name: ${form.name}\nCustomer Phone: ${form.phone}\nCustomer Email: ${form.email}`,
+      `New Flight Enquiry\n\nFrom: ${form.origin}\nTo: ${form.destination}\nTrip: ${tripLabel}\nCabin: ${form.cabinClass}\nDeparture: ${form.departureDate}\nReturn: ${returnInfo}\nPassengers: ${passengerSummary}\nSpecial Requests: ${form.specialRequests || "None"}\n\nCustomer Name: ${form.name}\nCustomer Phone: ${form.phone}\nCustomer Email: ${form.email}`,
     );
     const mailtoUrl = `mailto:book@bobbytravels.online?subject=${mailSubject}&body=${mailBody}`;
 
@@ -188,6 +206,7 @@ export function SearchPage() {
                     adults: 1,
                     children: 0,
                     infants: 0,
+                    cabinClass: "Economy",
                     specialRequests: "",
                     name: "",
                     phone: "",
@@ -506,6 +525,39 @@ export function SearchPage() {
                       ? "s"
                       : ""}
                   </p>
+                </div>
+
+                {/* Cabin Class */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="cabinClass"
+                    className="text-sm font-ui font-medium flex items-center gap-1.5"
+                  >
+                    <Plane className="w-3.5 h-3.5 text-gold" />
+                    Cabin Class
+                  </Label>
+                  <Select
+                    value={form.cabinClass}
+                    onValueChange={(v) =>
+                      setForm((prev) => ({ ...prev, cabinClass: v }))
+                    }
+                  >
+                    <SelectTrigger
+                      id="cabinClass"
+                      data-ocid="search.cabin.select"
+                      className="h-11 rounded-xl"
+                    >
+                      <SelectValue placeholder="Select cabin class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Economy">Economy</SelectItem>
+                      <SelectItem value="Premium Economy">
+                        Premium Economy
+                      </SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                      <SelectItem value="First Class">First Class</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Special Requests */}

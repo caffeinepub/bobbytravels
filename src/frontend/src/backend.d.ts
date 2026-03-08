@@ -50,6 +50,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimAdminAccess(secret: string): Promise<void>;
     getAllEnquiries(): Promise<Array<FlightEnquiry>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;

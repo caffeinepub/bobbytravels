@@ -1,10 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useIsCallerAdmin } from "@/hooks/useQueries";
+import { useAuth } from "@/hooks/useAuth";
 import { Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Page = "home" | "search" | "account" | "payment" | "contact" | "leads";
+type Page =
+  | "home"
+  | "search"
+  | "account"
+  | "payment"
+  | "contact"
+  | "leads"
+  | "users";
 
 interface NavbarProps {
   currentPage: Page;
@@ -22,12 +29,15 @@ const baseNavLinks: { label: string; page: Page; ocid: string }[] = [
 export function Navbar({ currentPage, onNavigate }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { data: isAdmin } = useIsCallerAdmin();
+  const { session } = useAuth();
+
+  const isAdmin = session?.isAdmin === true;
 
   const navLinks = isAdmin
     ? [
         ...baseNavLinks,
         { label: "Leads", page: "leads" as Page, ocid: "nav.leads.link" },
+        { label: "Users", page: "users" as Page, ocid: "nav.users.link" },
       ]
     : baseNavLinks;
 
@@ -143,7 +153,17 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                       </button>
                     ))}
                   </div>
-                  <div className="mt-auto p-5 border-t border-white/10">
+                  {session && (
+                    <div className="px-5 pb-2 pt-0 border-t border-white/10 mt-auto">
+                      <p className="text-white/60 text-xs font-ui pt-4">
+                        Signed in as{" "}
+                        <span className="text-white/90 font-semibold">
+                          {session.name}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  <div className="p-5 border-t border-white/10">
                     <p className="text-white/40 text-xs font-ui">
                       📞{" "}
                       <a
