@@ -57,7 +57,7 @@ export function useIsCallerAdmin() {
   return useIsAdmin();
 }
 
-// ── Registration/Login ──────────────────────────────────────────────────────
+// ── Registration/Login ────────────────────────────────────────────────────────────────────
 
 export function useRegisterUser() {
   const { actor } = useActor();
@@ -115,7 +115,7 @@ export function useValidateSession(token: string | null) {
   });
 }
 
-// ── Enquiries ────────────────────────────────────────────────────────────────
+// ── Enquiries ────────────────────────────────────────────────────────────────────────
 
 export function useSubmitFlightEnquiry() {
   const { actor } = useActor();
@@ -161,7 +161,106 @@ export function useSubmitPNREnquiry() {
   });
 }
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
+// ── User Bookings ───────────────────────────────────────────────────────────────────
+
+export function useGetUserBookings(token: string) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["userBookings", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      if (typeof a.getUserBookings === "function") {
+        return a.getUserBookings(token);
+      }
+      return [];
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAllBookings(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allBookings", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      if (typeof a.getAllBookings === "function") {
+        return a.getAllBookings(token);
+      }
+      return [];
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useUpdateBookingPNR(token: string | null) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      pnrNumber,
+    }: { bookingId: bigint; pnrNumber: string }) => {
+      if (!actor || !token) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.updateBookingPNR(token, bookingId, pnrNumber) as Promise<void>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["allBookings"] });
+      void queryClient.invalidateQueries({ queryKey: ["userBookings"] });
+    },
+  });
+}
+
+export function useUpdateBookingPaymentStatus(token: string | null) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      paymentStatus,
+    }: { bookingId: bigint; paymentStatus: string }) => {
+      if (!actor || !token) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.updateBookingPaymentStatus(
+        token,
+        bookingId,
+        paymentStatus,
+      ) as Promise<void>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["allBookings"] });
+      void queryClient.invalidateQueries({ queryKey: ["userBookings"] });
+    },
+  });
+}
+
+export function useUpdateBookingStatus(token: string | null) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      bookingId,
+      bookingStatus,
+    }: { bookingId: bigint; bookingStatus: string }) => {
+      if (!actor || !token) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.updateBookingStatus(
+        token,
+        bookingId,
+        bookingStatus,
+      ) as Promise<void>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["allBookings"] });
+      void queryClient.invalidateQueries({ queryKey: ["userBookings"] });
+    },
+  });
+}
+
+// ── Admin ───────────────────────────────────────────────────────────────────────────
 
 export function useGetAllFlightEnquiries(token: string | null) {
   const { actor, isFetching } = useActor();

@@ -30,6 +30,9 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { TripType } from "../backend.d";
+import { useAuth } from "../contexts/AuthContext";
+import { useActor } from "../hooks/useActor";
+import type { UserPage } from "./UserApp";
 
 const tripTypeMap: Record<string, TripType> = {
   oneWay: TripType.oneWay,
@@ -37,8 +40,14 @@ const tripTypeMap: Record<string, TripType> = {
   isFlexible: TripType.isFlexible,
 };
 
-export function SearchPage() {
+interface SearchPageProps {
+  onNavigate?: (page: UserPage) => void;
+}
+
+export function SearchPage({ onNavigate }: SearchPageProps = {}) {
   const { mutateAsync: submitEnquiry, isPending } = useSubmitFlightEnquiry();
+  const { sessionToken, currentUser } = useAuth();
+  const { actor } = useActor();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     origin: "",
@@ -96,6 +105,35 @@ export function SearchPage() {
       // Non-fatal
     }
 
+    // If user is logged in, also save a booking record (non-blocking)
+    if (sessionToken && currentUser) {
+      try {
+        const a = actor as unknown as Record<string, any>;
+        if (typeof a.saveUserBooking === "function") {
+          await a.saveUserBooking(sessionToken, {
+            customerName: form.name || currentUser.name,
+            customerEmail: form.email || currentUser.email,
+            customerPhone: form.phone,
+            origin: form.origin,
+            destination: form.destination,
+            departureDate: form.departureDate,
+            returnDate:
+              form.tripType === "returnTrip" && form.returnDate
+                ? [form.returnDate]
+                : [],
+            tripType: form.tripType,
+            adultsCount: BigInt(form.adults),
+            childrenCount: BigInt(form.children),
+            infantsCount: BigInt(form.infants),
+            cabinClass: form.cabinClass,
+          });
+          toast.success("Booking saved to your account!");
+        }
+      } catch {
+        // Non-blocking — don't show error to user
+      }
+    }
+
     const tripLabel = {
       oneWay: "One Way",
       returnTrip: "Return",
@@ -128,9 +166,22 @@ export function SearchPage() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Enquiry Sent!</h2>
           <p className="text-muted-foreground mb-6">
-            We've opened WhatsApp so Bobby can send you the best deals. Check
+            We’ve opened WhatsApp so Bobby can send you the best deals. Check
             your WhatsApp!
           </p>
+          {currentUser && (
+            <p className="text-sm text-emerald-700 bg-emerald-50 rounded-xl p-3 mb-4">
+              ✅ Booking saved to your account. View it in{" "}
+              <button
+                type="button"
+                onClick={() => onNavigate?.("myBookings")}
+                className="font-semibold underline"
+              >
+                My Bookings
+              </button>
+              .
+            </p>
+          )}
           <div className="flex gap-3 justify-center">
             <a
               href="https://wa.me/919815480825"
@@ -183,6 +234,12 @@ export function SearchPage() {
           <p className="text-muted-foreground">
             Fill in your details and get the best deals on WhatsApp.
           </p>
+          {currentUser && (
+            <p className="text-sm text-emerald-700 mt-2">
+              ✅ Logged in as {currentUser.name} — your booking will be saved
+              automatically.
+            </p>
+          )}
         </div>
 
         <Card className="border-0 shadow-xl rounded-3xl overflow-hidden">

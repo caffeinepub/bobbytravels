@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Plane, X } from "lucide-react";
+import { BookOpen, LogIn, LogOut, Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import type { UserPage } from "../pages/UserApp";
 
 interface NavbarProps {
@@ -17,6 +18,7 @@ export function Navbar({
 }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
 
   const navLinks: { label: string; page: UserPage; ocid: string }[] = [
     { label: "Home", page: "home", ocid: "nav.home.link" },
@@ -37,6 +39,12 @@ export function Navbar({
     onNavigate(page);
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleLogout = () => {
+    logout();
+    setMobileOpen(false);
+    handleNav("home");
   };
 
   return (
@@ -84,17 +92,44 @@ export function Navbar({
                 {link.label}
               </button>
             ))}
-            {!hideAuth && (
-              <Button
-                data-ocid="nav.login.button"
-                variant="outline"
-                size="sm"
-                onClick={() => {}}
-                className="ml-2 border-gold/50 text-gold hover:bg-gold hover:text-navy-dark h-8"
-              >
-                Login
-              </Button>
-            )}
+            {!hideAuth &&
+              (currentUser ? (
+                <>
+                  <button
+                    type="button"
+                    data-ocid="nav.mybookings.link"
+                    onClick={() => handleNav("myBookings")}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                      currentPage === "myBookings"
+                        ? "bg-gold text-navy-dark"
+                        : "text-white/80 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    My Bookings
+                  </button>
+                  <button
+                    type="button"
+                    data-ocid="nav.logout.button"
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 ml-1 px-3 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Button
+                  data-ocid="nav.login.button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleNav("login")}
+                  className="ml-2 border-gold/50 text-gold hover:bg-gold hover:text-navy-dark h-8 gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  Login
+                </Button>
+              ))}
           </div>
 
           <div className="lg:hidden">
@@ -142,8 +177,44 @@ export function Navbar({
                         {link.label}
                       </button>
                     ))}
+                    {!hideAuth && currentUser && (
+                      <button
+                        type="button"
+                        data-ocid="nav.mybookings.link"
+                        onClick={() => handleNav("myBookings")}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-left ${
+                          currentPage === "myBookings"
+                            ? "bg-gold text-navy-dark"
+                            : "text-white/80 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        My Bookings
+                      </button>
+                    )}
                   </div>
-                  <div className="p-5 border-t border-white/10">
+                  <div className="p-5 border-t border-white/10 space-y-3">
+                    {!hideAuth &&
+                      (currentUser ? (
+                        <Button
+                          data-ocid="nav.logout.button"
+                          variant="outline"
+                          className="w-full border-white/20 text-white/70 hover:bg-white/10 gap-2"
+                          onClick={handleLogout}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </Button>
+                      ) : (
+                        <Button
+                          data-ocid="nav.login.button"
+                          className="w-full bg-gold text-navy-dark hover:bg-gold/90 gap-2"
+                          onClick={() => handleNav("login")}
+                        >
+                          <LogIn className="w-4 h-4" />
+                          Login / Register
+                        </Button>
+                      ))}
                     <p className="text-white/40 text-xs">
                       <a href="tel:9815480825" className="hover:text-gold">
                         +91 9815480825

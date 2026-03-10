@@ -6,6 +6,8 @@ import { Navbar } from "../components/Navbar";
 import { AuthProvider } from "../contexts/AuthContext";
 import { ContactPage } from "./ContactPage";
 import { HomePage } from "./HomePage";
+import { LoginPage } from "./LoginPage";
+import { MyBookingsPage } from "./MyBookingsPage";
 import { PNRPage } from "./PNRPage";
 import { PaymentPage } from "./PaymentPage";
 import { SearchPage } from "./SearchPage";
@@ -19,7 +21,9 @@ export type UserPage =
   | "tours"
   | "pnr"
   | "contact"
-  | "payment";
+  | "payment"
+  | "login"
+  | "myBookings";
 
 export function UserApp() {
   const [currentPage, setCurrentPage] = useState<UserPage>("home");
@@ -33,6 +37,8 @@ export function UserApp() {
       pnr: "PNR Check – BobbyTravels",
       contact: "Contact Us – BobbyTravels",
       payment: "Secure Payment – BobbyTravels",
+      login: "Login – BobbyTravels",
+      myBookings: "My Bookings – BobbyTravels",
     };
     document.title = titles[currentPage];
   }, [currentPage]);
@@ -42,7 +48,7 @@ export function UserApp() {
       case "home":
         return <HomePage onNavigate={setCurrentPage} />;
       case "search":
-        return <SearchPage />;
+        return <SearchPage onNavigate={setCurrentPage} />;
       case "visa":
         return <VisaPage />;
       case "tours":
@@ -53,6 +59,10 @@ export function UserApp() {
         return <ContactPage />;
       case "payment":
         return <PaymentPage />;
+      case "login":
+        return <LoginPage onNavigate={setCurrentPage} />;
+      case "myBookings":
+        return <MyBookingsPage onNavigate={setCurrentPage} />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }
@@ -61,11 +71,7 @@ export function UserApp() {
   return (
     <AuthProvider>
       <div className="min-h-screen flex flex-col bg-background">
-        <Navbar
-          currentPage={currentPage}
-          onNavigate={setCurrentPage}
-          hideAuth
-        />
+        <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
         <div className="flex-1">{renderPage()}</div>
         <Footer />
         <Toaster richColors position="top-right" />

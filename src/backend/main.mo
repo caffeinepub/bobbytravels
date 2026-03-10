@@ -11,8 +11,7 @@ import Principal "mo:core/Principal";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
-// Migrate old stable state to new stable state using migration module
+import Outcall "http-outcalls/outcall";
 
 actor {
   let adminEmail = "adityabholath@gmail.com";
@@ -21,6 +20,7 @@ actor {
   var nextVisaEnquiryId = 1;
   var nextTourEnquiryId = 1;
   var nextPNREnquiryId = 1;
+  var nextBookingId = 1;
 
   public type User = {
     id : Nat;
@@ -44,6 +44,8 @@ actor {
   let sessions = Map.empty<SessionToken, Principal>();
   let principalToUser = Map.empty<Principal, Nat>();
   let userProfiles = Map.empty<Principal, UserProfile>();
+  // Map session token to userId for booking lookups
+  let sessionToUserId = Map.empty<SessionToken, Nat>();
 
   public type TripType = {
     #oneWay;
@@ -164,12 +166,53 @@ actor {
 
   let pnrEnquiries = Map.empty<Nat, PNREnquiry>();
 
+  // User Bookings
+  public type UserBooking = {
+    bookingId : Nat;
+    userId : Nat;
+    customerName : Text;
+    customerEmail : Text;
+    customerPhone : Text;
+    origin : Text;
+    destination : Text;
+    departureDate : Text;
+    returnDate : ?Text;
+    tripType : Text;
+    adultsCount : Nat;
+    childrenCount : Nat;
+    infantsCount : Nat;
+    cabinClass : Text;
+    pnrNumber : ?Text;
+    paymentStatus : Text;
+    bookingStatus : Text;
+    amadeusFlightInfo : ?Text;
+    createdAt : Int;
+  };
+
+  public type UserBookingInput = {
+    customerName : Text;
+    customerEmail : Text;
+    customerPhone : Text;
+    origin : Text;
+    destination : Text;
+    departureDate : Text;
+    returnDate : ?Text;
+    tripType : Text;
+    adultsCount : Nat;
+    childrenCount : Nat;
+    infantsCount : Nat;
+    cabinClass : Text;
+  };
+
+  let bookings = Map.empty<Nat, UserBooking>();
+
   public type AdminStats = {
     totalFlightEnquiries : Nat;
     totalVisaEnquiries : Nat;
     totalTourEnquiries : Nat;
     totalPNREnquiries : Nat;
     totalUsers : Nat;
+    totalBookings : Nat;
   };
 
   func generateToken(email : Text) : SessionToken {
@@ -181,14 +224,19 @@ actor {
   func generatePrincipalFromEmail(email : Text) : Principal {
     let timestamp = Int.abs(Time.now());
     let uniqueString = email.concat(timestamp.toText());
-    Principal.fromText(uniqueString # ".0"); // Faking conversion from email to Principal for demonstration
+    Principal.fromText(uniqueString # ".0");
   };
 
   // Include authorization component
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // User Profile Management (required by instructions)
+  // HTTP transform function for outcalls
+  public query func transform(input : Outcall.TransformationInput) : async Outcall.TransformationOutput {
+    Outcall.transform(input);
+  };
+
+  // User Profile Management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -211,7 +259,6 @@ actor {
   };
 
   public shared ({ caller }) func registerUser(email : Text, passwordHash : Text, name : Text, phone : ?Text) : async SessionToken {
-    // Check if user already exists
     switch (usersByEmail.get(email)) {
       case (?_) { Runtime.trap("User with this email already exists") };
       case (null) {};
@@ -219,9 +266,10 @@ actor {
 
     let isAdmin = email == adminEmail;
     let userPrincipal = generatePrincipalFromEmail(email);
+    let userId = nextUserId;
 
     let user : User = {
-      id = nextUserId;
+      id = userId;
       email;
       passwordHash;
       name;
@@ -229,12 +277,11 @@ actor {
       isAdmin;
     };
 
-    users.add(nextUserId, user);
-    usersByEmail.add(email, nextUserId);
-    principalToUser.add(userPrincipal, nextUserId);
+    users.add(userId, user);
+    usersByEmail.add(email, userId);
+    principalToUser.add(userPrincipal, userId);
     nextUserId += 1;
 
-    // Set up user profile
     let profile : UserProfile = {
       name = name;
       phone = phone;
@@ -242,7 +289,6 @@ actor {
     };
     userProfiles.add(userPrincipal, profile);
 
-    // Assign role in AccessControl system
     if (isAdmin) {
       AccessControl.assignRole(accessControlState, userPrincipal, userPrincipal, #admin);
     } else {
@@ -251,6 +297,7 @@ actor {
 
     let token = generateToken(email);
     sessions.add(token, userPrincipal);
+    sessionToUserId.add(token, userId);
     token;
   };
 
@@ -262,10 +309,10 @@ actor {
             if (user.passwordHash != passwordHash) {
               Runtime.trap("Invalid email or password");
             };
-
             let userPrincipal = generatePrincipalFromEmail(email);
             let token = generateToken(email);
             sessions.add(token, userPrincipal);
+            sessionToUserId.add(token, userId);
             token;
           };
           case (null) { Runtime.trap("Invalid email or password") };
@@ -307,9 +354,117 @@ actor {
     users.toArray();
   };
 
-  // Flight Enquiries - Public submission (no auth required)
+  // ---- User Bookings ----
+
+  public shared ({ caller }) func saveUserBooking(token : SessionToken, input : UserBookingInput) : async Nat {
+    let userId = switch (sessionToUserId.get(token)) {
+      case (?id) { id };
+      case (null) { Runtime.trap("Invalid session token") };
+    };
+    let user = switch (users.get(userId)) {
+      case (?u) { u };
+      case (null) { Runtime.trap("User not found") };
+    };
+    let bookingId = nextBookingId;
+    let booking : UserBooking = {
+      bookingId;
+      userId;
+      customerName = input.customerName;
+      customerEmail = input.customerEmail;
+      customerPhone = input.customerPhone;
+      origin = input.origin;
+      destination = input.destination;
+      departureDate = input.departureDate;
+      returnDate = input.returnDate;
+      tripType = input.tripType;
+      adultsCount = input.adultsCount;
+      childrenCount = input.childrenCount;
+      infantsCount = input.infantsCount;
+      cabinClass = input.cabinClass;
+      pnrNumber = null;
+      paymentStatus = "pending";
+      bookingStatus = "enquiry";
+      amadeusFlightInfo = null;
+      createdAt = Time.now();
+    };
+    bookings.add(bookingId, booking);
+    nextBookingId += 1;
+    bookingId;
+  };
+
+  public query ({ caller }) func getUserBookings(token : SessionToken) : async [UserBooking] {
+    let userId = switch (sessionToUserId.get(token)) {
+      case (?id) { id };
+      case (null) { Runtime.trap("Invalid session token") };
+    };
+    let result = List.empty<UserBooking>();
+    for ((_, booking) in bookings.entries()) {
+      if (booking.userId == userId) {
+        result.add(booking);
+      };
+    };
+    result.toArray();
+  };
+
+  public shared ({ caller }) func updateBookingPNR(token : SessionToken, bookingId : Nat, pnrNumber : Text) : async () {
+    requireAdminByToken(token);
+    switch (bookings.get(bookingId)) {
+      case (?booking) {
+        bookings.add(bookingId, { booking with pnrNumber = ?pnrNumber });
+      };
+      case (null) { Runtime.trap("Booking not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateBookingPaymentStatus(token : SessionToken, bookingId : Nat, paymentStatus : Text) : async () {
+    requireAdminByToken(token);
+    switch (bookings.get(bookingId)) {
+      case (?booking) {
+        bookings.add(bookingId, { booking with paymentStatus });
+      };
+      case (null) { Runtime.trap("Booking not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateBookingStatus(token : SessionToken, bookingId : Nat, bookingStatus : Text) : async () {
+    requireAdminByToken(token);
+    switch (bookings.get(bookingId)) {
+      case (?booking) {
+        bookings.add(bookingId, { booking with bookingStatus });
+      };
+      case (null) { Runtime.trap("Booking not found") };
+    };
+  };
+
+  public query ({ caller }) func getAllBookings(token : SessionToken) : async [UserBooking] {
+    requireAdminByToken(token);
+    let result = List.empty<UserBooking>();
+    for ((_, booking) in bookings.entries()) {
+      result.add(booking);
+    };
+    result.toArray();
+  };
+
+  // Amadeus API - fetch flight info by PNR
+  public shared ({ caller }) func getAmadeusFlightInfo(pnrNumber : Text, airline : Text) : async Text {
+    // Step 1: Get OAuth token
+    let tokenBody = "grant_type=client_credentials&client_id=IM89moTdjNpalJEL5SkCNis2C9vA3Pix&client_secret=IM89moTdjNpalJEL5SkCNis2C9vA3Pix";
+    let tokenHeaders : [Outcall.Header] = [{
+      name = "Content-Type";
+      value = "application/x-www-form-urlencoded";
+    }];
+    let tokenResponse = await Outcall.httpPostRequest(
+      "https://test.api.amadeus.com/v1/security/oauth2/token",
+      tokenHeaders,
+      tokenBody,
+      transform
+    );
+    // Return the raw token response for now (frontend can parse and use it)
+    tokenResponse;
+  };
+
+  // Flight Enquiries
   public shared ({ caller }) func submitFlightEnquiry(input : FlightEnquiryInput) : async Nat {
-    // No authorization check - anonymous submissions allowed
     let enquiry : FlightEnquiry = {
       id = nextFlightEnquiryId;
       customerName = input.customerName;
@@ -327,7 +482,6 @@ actor {
       specialRequests = input.specialRequests;
       status = "pending";
     };
-
     flightEnquiries.add(nextFlightEnquiryId, enquiry);
     nextFlightEnquiryId += 1;
     enquiry.id;
@@ -342,16 +496,14 @@ actor {
     requireAdminByToken(token);
     switch (flightEnquiries.get(id)) {
       case (?enquiry) {
-        let updatedEnquiry = { enquiry with status };
-        flightEnquiries.add(id, updatedEnquiry);
+        flightEnquiries.add(id, { enquiry with status });
       };
       case (null) { Runtime.trap("Flight enquiry not found") };
     };
   };
 
-  // Visa Enquiries - Public submission (no auth required)
+  // Visa Enquiries
   public shared ({ caller }) func submitVisaEnquiry(input : VisaEnquiryInput) : async Nat {
-    // No authorization check - anonymous submissions allowed
     let enquiry : VisaEnquiry = {
       id = nextVisaEnquiryId;
       customerName = input.customerName;
@@ -364,7 +516,6 @@ actor {
       specialNotes = input.specialNotes;
       status = "pending";
     };
-
     visaEnquiries.add(nextVisaEnquiryId, enquiry);
     nextVisaEnquiryId += 1;
     enquiry.id;
@@ -379,16 +530,14 @@ actor {
     requireAdminByToken(token);
     switch (visaEnquiries.get(id)) {
       case (?enquiry) {
-        let updatedEnquiry = { enquiry with status };
-        visaEnquiries.add(id, updatedEnquiry);
+        visaEnquiries.add(id, { enquiry with status });
       };
       case (null) { Runtime.trap("Visa enquiry not found") };
     };
   };
 
-  // Tour Enquiries - Public submission (no auth required)
+  // Tour Enquiries
   public shared ({ caller }) func submitTourEnquiry(input : TourEnquiryInput) : async Nat {
-    // No authorization check - anonymous submissions allowed
     let enquiry : TourEnquiry = {
       id = nextTourEnquiryId;
       customerName = input.customerName;
@@ -402,7 +551,6 @@ actor {
       specialRequests = input.specialRequests;
       status = "pending";
     };
-
     tourEnquiries.add(nextTourEnquiryId, enquiry);
     nextTourEnquiryId += 1;
     enquiry.id;
@@ -417,16 +565,14 @@ actor {
     requireAdminByToken(token);
     switch (tourEnquiries.get(id)) {
       case (?enquiry) {
-        let updatedEnquiry = { enquiry with status };
-        tourEnquiries.add(id, updatedEnquiry);
+        tourEnquiries.add(id, { enquiry with status });
       };
       case (null) { Runtime.trap("Tour enquiry not found") };
     };
   };
 
-  // PNR Enquiries - Public submission (no auth required)
+  // PNR Enquiries
   public shared ({ caller }) func submitPNREnquiry(input : PNREnquiryInput) : async Nat {
-    // No authorization check - anonymous submissions allowed
     let enquiry : PNREnquiry = {
       id = nextPNREnquiryId;
       customerName = input.customerName;
@@ -437,7 +583,6 @@ actor {
       travelDate = input.travelDate;
       notes = input.notes;
     };
-
     pnrEnquiries.add(nextPNREnquiryId, enquiry);
     nextPNREnquiryId += 1;
     enquiry.id;
@@ -448,7 +593,7 @@ actor {
     pnrEnquiries.toArray();
   };
 
-  // Admin Stats - Admin only
+  // Admin Stats
   public query ({ caller }) func getAdminStats(token : SessionToken) : async AdminStats {
     requireAdminByToken(token);
     {
@@ -457,6 +602,7 @@ actor {
       totalTourEnquiries = tourEnquiries.size();
       totalPNREnquiries = pnrEnquiries.size();
       totalUsers = users.size();
+      totalBookings = bookings.size();
     };
   };
 };

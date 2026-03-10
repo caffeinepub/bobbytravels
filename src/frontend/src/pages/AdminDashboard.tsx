@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,8 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   BarChart3,
+  BookOpen,
   Check,
   Copy,
+  CreditCard,
   FileSearch,
   Globe,
   Lock,
@@ -28,11 +31,15 @@ import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import {
   useGetAdminStats,
+  useGetAllBookings,
   useGetAllFlightEnquiries,
   useGetAllPNREnquiries,
   useGetAllTourEnquiries,
   useGetAllUsers,
   useGetAllVisaEnquiries,
+  useUpdateBookingPNR,
+  useUpdateBookingPaymentStatus,
+  useUpdateBookingStatus,
   useUpdateFlightEnquiryStatus,
   useUpdateTourEnquiryStatus,
   useUpdateVisaEnquiryStatus,
@@ -107,6 +114,11 @@ export function AdminDashboard() {
   const updateFlight = useUpdateFlightEnquiryStatus(sessionToken);
   const updateVisa = useUpdateVisaEnquiryStatus(sessionToken);
   const updateTour = useUpdateTourEnquiryStatus(sessionToken);
+  const { data: bookings } = useGetAllBookings(sessionToken);
+  const updatePNR = useUpdateBookingPNR(sessionToken);
+  const updatePayment = useUpdateBookingPaymentStatus(sessionToken);
+  const updateBookingStatus = useUpdateBookingStatus(sessionToken);
+  const [pnrInputs, setPnrInputs] = useState<Record<string, string>>({});
   const [promoMsg, setPromoMsg] = useState("");
 
   if (!isAdmin) {
@@ -138,6 +150,8 @@ export function AdminDashboard() {
     (tours as unknown as [bigint, Record<string, unknown>][] | undefined) ?? [];
   const pnrList =
     (pnrs as unknown as [bigint, Record<string, unknown>][] | undefined) ?? [];
+  const bookingList =
+    (bookings as unknown as Record<string, any>[] | undefined) ?? [];
   const userList =
     (users as unknown as [bigint, Record<string, unknown>][] | undefined) ?? [];
 
@@ -228,6 +242,9 @@ export function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="users" data-ocid="dashboard.users.tab">
               Users ({userList.length})
+            </TabsTrigger>
+            <TabsTrigger value="bookings" data-ocid="dashboard.bookings.tab">
+              Bookings ({bookingList.length})
             </TabsTrigger>
             <TabsTrigger
               value="promotions"
@@ -665,6 +682,193 @@ export function AdminDashboard() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Bookings */}
+          <TabsContent value="bookings">
+            {bookingList.length === 0 ? (
+              <div
+                data-ocid="dashboard.bookings.empty_state"
+                className="text-center py-16 text-muted-foreground"
+              >
+                <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p>No bookings yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border bg-white shadow-sm">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left py-3 px-4 font-semibold">#</th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Name
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Email
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Route
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Date
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">PNR</th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Payment
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {bookingList.map((b: any, idx: number) => {
+                      const bKey = String(b.bookingId);
+                      const pnr =
+                        Array.isArray(b.pnrNumber) && b.pnrNumber.length > 0
+                          ? b.pnrNumber[0]
+                          : null;
+                      return (
+                        <tr
+                          key={bKey}
+                          data-ocid={`dashboard.bookings.row.${idx + 1}`}
+                          className="hover:bg-muted/20"
+                        >
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {bKey}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            {b.customerName}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {b.customerEmail}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-medium">{b.origin}</span>
+                            <span className="text-gold mx-1">→</span>
+                            <span className="font-medium">{b.destination}</span>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">
+                            {b.departureDate}
+                          </td>
+                          <td className="py-3 px-4">
+                            {pnr ? (
+                              <span className="font-mono text-navy-dark">
+                                {pnr}
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 text-xs">
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Select
+                              value={b.paymentStatus}
+                              onValueChange={async (v) => {
+                                try {
+                                  await updatePayment.mutateAsync({
+                                    bookingId: b.bookingId,
+                                    paymentStatus: v,
+                                  });
+                                  toast.success("Payment status updated");
+                                } catch {
+                                  toast.error("Update failed");
+                                }
+                              }}
+                            >
+                              <SelectTrigger
+                                data-ocid={`dashboard.bookings.payment.select.${idx + 1}`}
+                                className="h-8 w-28 text-xs"
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="paid">Paid</SelectItem>
+                                <SelectItem value="failed">Failed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="py-3 px-4">
+                            <Select
+                              value={b.bookingStatus}
+                              onValueChange={async (v) => {
+                                try {
+                                  await updateBookingStatus.mutateAsync({
+                                    bookingId: b.bookingId,
+                                    bookingStatus: v,
+                                  });
+                                  toast.success("Booking status updated");
+                                } catch {
+                                  toast.error("Update failed");
+                                }
+                              }}
+                            >
+                              <SelectTrigger
+                                data-ocid={`dashboard.bookings.status.select.${idx + 1}`}
+                                className="h-8 w-32 text-xs"
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="enquiry">Enquiry</SelectItem>
+                                <SelectItem value="confirmed">
+                                  Confirmed
+                                </SelectItem>
+                                <SelectItem value="cancelled">
+                                  Cancelled
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                data-ocid={`dashboard.bookings.pnr.input.${idx + 1}`}
+                                placeholder="Set PNR"
+                                value={pnrInputs[bKey] ?? pnr ?? ""}
+                                onChange={(e) =>
+                                  setPnrInputs((prev) => ({
+                                    ...prev,
+                                    [bKey]: e.target.value,
+                                  }))
+                                }
+                                className="h-8 w-28 text-xs"
+                              />
+                              <Button
+                                data-ocid={`dashboard.bookings.pnr.save_button.${idx + 1}`}
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs px-2"
+                                onClick={async () => {
+                                  const pnrVal = pnrInputs[bKey];
+                                  if (!pnrVal) return;
+                                  try {
+                                    await updatePNR.mutateAsync({
+                                      bookingId: b.bookingId,
+                                      pnrNumber: pnrVal,
+                                    });
+                                    toast.success("PNR saved");
+                                  } catch {
+                                    toast.error("Save failed");
+                                  }
+                                }}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
