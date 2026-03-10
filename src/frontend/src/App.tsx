@@ -3,49 +3,44 @@ import { useEffect, useState } from "react";
 import { Footer } from "./components/Footer";
 import { InstallBanner } from "./components/InstallBanner";
 import { Navbar } from "./components/Navbar";
+import { AuthProvider } from "./contexts/AuthContext";
+import { AdminDashboard } from "./pages/AdminDashboard";
 import { ContactPage } from "./pages/ContactPage";
 import { HomePage } from "./pages/HomePage";
-import { LeadsPage } from "./pages/LeadsPage";
+import { LoginPage } from "./pages/LoginPage";
+import { PNRPage } from "./pages/PNRPage";
 import { PaymentPage } from "./pages/PaymentPage";
 import { SearchPage } from "./pages/SearchPage";
-import { UsersPage } from "./pages/UsersPage";
+import { ToursPage } from "./pages/ToursPage";
+import { VisaPage } from "./pages/VisaPage";
 
-type Page = "home" | "search" | "payment" | "contact" | "leads" | "users";
+export type Page =
+  | "home"
+  | "search"
+  | "visa"
+  | "tours"
+  | "pnr"
+  | "contact"
+  | "payment"
+  | "login"
+  | "dashboard";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
 
-  // Update document title on page change
   useEffect(() => {
     const titles: Record<Page, string> = {
-      home: "BobbyTravels – Best Flight Deals",
+      home: "BobbyTravels – Your Trusted Travel Partner",
       search: "Book a Flight – BobbyTravels",
-      payment: "Secure Payment – BobbyTravels",
+      visa: "Visa Services – BobbyTravels",
+      tours: "Tour Packages – BobbyTravels",
+      pnr: "PNR Check – BobbyTravels",
       contact: "Contact Us – BobbyTravels",
-      leads: "Leads Dashboard – BobbyTravels",
-      users: "User Management – BobbyTravels",
+      payment: "Secure Payment – BobbyTravels",
+      login: "Login / Register – BobbyTravels",
+      dashboard: "Admin Dashboard – BobbyTravels",
     };
     document.title = titles[currentPage];
-
-    // Update meta description
-    const metaDesc = document.querySelector<HTMLMetaElement>(
-      'meta[name="description"]',
-    );
-    if (metaDesc) {
-      const descs: Record<Page, string> = {
-        home: "BobbyTravels – Find the best flight deals. Get personalized flight quotes directly on WhatsApp.",
-        search:
-          "Search and book flights with BobbyTravels. One way, return, or flexible trips.",
-        payment:
-          "Secure UPI/Google Pay payment for your BobbyTravels flight booking.",
-        contact: "Contact BobbyTravels via WhatsApp, phone, or email.",
-        leads:
-          "Admin leads dashboard – view all flight enquiries submitted through BobbyTravels.",
-        users:
-          "Admin user management – view and manage all registered users on BobbyTravels.",
-      };
-      metaDesc.content = descs[currentPage];
-    }
   }, [currentPage]);
 
   const renderPage = () => {
@@ -54,26 +49,34 @@ export default function App() {
         return <HomePage onNavigate={setCurrentPage} />;
       case "search":
         return <SearchPage />;
-      case "payment":
-        return <PaymentPage />;
+      case "visa":
+        return <VisaPage />;
+      case "tours":
+        return <ToursPage />;
+      case "pnr":
+        return <PNRPage />;
       case "contact":
         return <ContactPage />;
-      case "leads":
-        return <LeadsPage />;
-      case "users":
-        return <UsersPage />;
+      case "payment":
+        return <PaymentPage />;
+      case "login":
+        return <LoginPage onNavigate={setCurrentPage} />;
+      case "dashboard":
+        return <AdminDashboard />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
-      <div className="flex-1">{renderPage()}</div>
-      <Footer />
-      <Toaster richColors position="top-right" />
-      <InstallBanner />
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
+        <div className="flex-1">{renderPage()}</div>
+        <Footer />
+        <Toaster richColors position="top-right" />
+        <InstallBanner />
+      </div>
+    </AuthProvider>
   );
 }

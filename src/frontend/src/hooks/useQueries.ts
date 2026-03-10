@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  FlightEnquiry,
   FlightEnquiryInput,
+  PNREnquiryInput,
+  TourEnquiryInput,
   UserProfile,
+  VisaEnquiryInput,
 } from "../backend.d";
 import { useActor } from "./useActor";
-
-// ── Profile ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyActor = Record<string, any>;
@@ -18,11 +18,10 @@ export function useGetMyProfile() {
     queryFn: async () => {
       if (!actor) return null;
       const a = actor as unknown as AnyActor;
-      // Try new API first, fall back to old
-      if (typeof a.getMyProfile === "function") {
-        return a.getMyProfile() as Promise<UserProfile | null>;
+      if (typeof a.getCallerUserProfile === "function") {
+        return a.getCallerUserProfile() as Promise<UserProfile | null>;
       }
-      return a.getCallerUserProfile() as Promise<UserProfile | null>;
+      return null;
     },
     enabled: !!actor && !isFetching,
   });
@@ -35,104 +34,265 @@ export function useSaveMyProfile() {
     mutationFn: async (p: UserProfile) => {
       if (!actor) throw new Error("Not connected");
       const a = actor as unknown as AnyActor;
-      if (typeof a.saveMyProfile === "function") {
-        return a.saveMyProfile(
-          p.name,
-          p.email,
-          p.phone ?? null,
-        ) as Promise<void>;
-      }
       return a.saveCallerUserProfile(p) as Promise<void>;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-      void queryClient.invalidateQueries({ queryKey: ["callerUserProfile"] });
     },
   });
 }
 
-// Keep legacy alias for any remaining callers
 export const useGetCallerUserProfile = useGetMyProfile;
 export const useSaveCallerUserProfile = useSaveMyProfile;
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
-
 export function useIsAdmin() {
-  const { actor, isFetching } = useActor();
   return useQuery<boolean>({
-    queryKey: ["isAdmin"],
-    queryFn: async () => {
-      if (!actor) return false;
-      const a = actor as unknown as AnyActor;
-      if (typeof a.isAdmin === "function") {
-        return a.isAdmin() as Promise<boolean>;
-      }
-      return a.isCallerAdmin() as Promise<boolean>;
-    },
-    enabled: !!actor && !isFetching,
-    staleTime: 30_000,
+    queryKey: ["isAdmin_local"],
+    queryFn: async () => false,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
-// Keep legacy alias
 export function useIsCallerAdmin() {
   return useIsAdmin();
 }
 
-export function useInitializeAccessControl() {
+// ── Registration/Login ──────────────────────────────────────────────────────
+
+export function useRegisterUser() {
   const { actor } = useActor();
-  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (secret: string) => {
+    mutationFn: async ({
+      email,
+      passwordHash,
+      name,
+      phone,
+    }: {
+      email: string;
+      passwordHash: string;
+      name: string;
+      phone: string | null;
+    }) => {
       if (!actor) throw new Error("Not connected");
       const a = actor as unknown as AnyActor;
-      return a.claimAdminAccess(secret) as Promise<void>;
+      return a.registerUser(
+        email,
+        passwordHash,
+        name,
+        phone,
+      ) as Promise<string>;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["isAdmin"] });
-      void queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
-      void queryClient.invalidateQueries({ queryKey: ["myProfile"] });
+  });
+}
+
+export function useLoginUser() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async ({
+      email,
+      passwordHash,
+    }: {
+      email: string;
+      passwordHash: string;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.loginUser(email, passwordHash) as Promise<string>;
     },
+  });
+}
+
+export function useValidateSession(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["session", token],
+    queryFn: async () => {
+      if (!actor || !token) return null;
+      const a = actor as unknown as AnyActor;
+      return a.validateSession(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
   });
 }
 
 // ── Enquiries ────────────────────────────────────────────────────────────────
 
-export function useGetAllEnquiries() {
-  const { actor, isFetching } = useActor();
-  return useQuery<FlightEnquiry[]>({
-    queryKey: ["allEnquiries"],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllEnquiries();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useSubmitEnquiry() {
+export function useSubmitFlightEnquiry() {
   const { actor } = useActor();
   return useMutation({
     mutationFn: async (input: FlightEnquiryInput) => {
       if (!actor) throw new Error("Not connected");
-      return actor.submitEnquiry(input);
+      const a = actor as unknown as AnyActor;
+      return a.submitFlightEnquiry(input) as Promise<bigint>;
     },
   });
 }
 
-export function useUpdateEnquiryStatus() {
+export function useSubmitVisaEnquiry() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (input: VisaEnquiryInput) => {
+      if (!actor) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.submitVisaEnquiry(input) as Promise<bigint>;
+    },
+  });
+}
+
+export function useSubmitTourEnquiry() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (input: TourEnquiryInput) => {
+      if (!actor) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.submitTourEnquiry(input) as Promise<bigint>;
+    },
+  });
+}
+
+export function useSubmitPNREnquiry() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (input: PNREnquiryInput) => {
+      if (!actor) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.submitPNREnquiry(input) as Promise<bigint>;
+    },
+  });
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+export function useGetAllFlightEnquiries(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allFlightEnquiries", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      return a.getAllFlightEnquiries(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAllVisaEnquiries(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allVisaEnquiries", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      return a.getAllVisaEnquiries(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAllTourEnquiries(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allTourEnquiries", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      return a.getAllTourEnquiries(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAllPNREnquiries(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allPNREnquiries", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      return a.getAllPNREnquiries(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAllUsers(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allUsers", token],
+    queryFn: async () => {
+      if (!actor || !token) return [];
+      const a = actor as unknown as AnyActor;
+      return a.getAllUsers(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useGetAdminStats(token: string | null) {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["adminStats", token],
+    queryFn: async () => {
+      if (!actor || !token) return null;
+      const a = actor as unknown as AnyActor;
+      return a.getAdminStats(token);
+    },
+    enabled: !!actor && !isFetching && !!token,
+  });
+}
+
+export function useUpdateFlightEnquiryStatus(token: string | null) {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: bigint; status: string }) => {
-      if (!actor) throw new Error("Not connected");
+      if (!actor || !token) throw new Error("Not connected");
       const a = actor as unknown as AnyActor;
-      if (typeof a.updateEnquiryStatus === "function") {
-        return a.updateEnquiryStatus(id, status) as Promise<void>;
-      }
+      return a.updateFlightEnquiryStatus(token, id, status) as Promise<void>;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["allEnquiries"] });
+      void queryClient.invalidateQueries({ queryKey: ["allFlightEnquiries"] });
     },
   });
+}
+
+export function useUpdateVisaEnquiryStatus(token: string | null) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: bigint; status: string }) => {
+      if (!actor || !token) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.updateVisaEnquiryStatus(token, id, status) as Promise<void>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["allVisaEnquiries"] });
+    },
+  });
+}
+
+export function useUpdateTourEnquiryStatus(token: string | null) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: bigint; status: string }) => {
+      if (!actor || !token) throw new Error("Not connected");
+      const a = actor as unknown as AnyActor;
+      return a.updateTourEnquiryStatus(token, id, status) as Promise<void>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["allTourEnquiries"] });
+    },
+  });
+}
+
+// Legacy aliases
+export function useGetAllEnquiries() {
+  return useGetAllFlightEnquiries(null);
+}
+export function useSubmitEnquiry() {
+  return useSubmitFlightEnquiry();
+}
+export function useUpdateEnquiryStatus() {
+  return useUpdateFlightEnquiryStatus(null);
 }

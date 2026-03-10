@@ -1,39 +1,17 @@
 import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Text "mo:core/Text";
 import List "mo:core/List";
 import Principal "mo:core/Principal";
 
 module {
-  public type OldUserProfile = {
-    name : Text;
-    phone : ?Text;
-    email : Text;
+  type TripType = {
+    #oneWay;
+    #returnTrip;
+    #isFlexible;
   };
 
-  public type OldFlightEnquiry = {
-    id : Nat;
-    origin : Text;
-    destination : Text;
-    departureDate : Text;
-    returnDate : ?Text;
-    tripType : {
-      #oneWay;
-      #returnTrip;
-      #isFlexible;
-    };
-    passengerCount : Nat;
-    specialRequests : ?Text;
-    timestamp : Int;
-  };
-
-  public type OldActor = {
-    userProfiles : Map.Map<Principal, OldUserProfile>;
-    nextEnquiryId : Nat;
-    flightEnquiries : List.List<OldFlightEnquiry>;
-  };
-
-  public type NewUserProfile = OldUserProfile;
-
-  public type NewFlightEnquiry = {
+  type OldFlightEnquiry = {
     id : Nat;
     customerName : Text;
     customerPhone : Text;
@@ -42,36 +20,69 @@ module {
     destination : Text;
     departureDate : Text;
     returnDate : ?Text;
-    tripType : {
-      #oneWay;
-      #returnTrip;
-      #isFlexible;
-    };
+    tripType : TripType;
     passengerCount : Nat;
     specialRequests : ?Text;
     timestamp : Int;
   };
 
-  public type NewActor = {
-    userProfiles : Map.Map<Principal, NewUserProfile>;
+  type OldActor = {
+    userProfiles : Map.Map<Principal.Principal, { name : Text; phone : ?Text; email : Text }>;
+    flightEnquiries : List.List<OldFlightEnquiry>;
     nextEnquiryId : Nat;
-    flightEnquiries : List.List<NewFlightEnquiry>;
+  };
+
+  type NewFlightEnquiry = {
+    id : Nat;
+    customerName : Text;
+    customerPhone : Text;
+    customerEmail : ?Text;
+    origin : Text;
+    destination : Text;
+    departureDate : Text;
+    returnDate : ?Text;
+    tripType : TripType;
+    adultsCount : Nat;
+    childrenCount : Nat;
+    infantsCount : Nat;
+    cabinClass : ?Text;
+    specialRequests : ?Text;
+    status : Text;
+  };
+
+  type NewActor = {
+    flightEnquiries : Map.Map<Nat, NewFlightEnquiry>;
+    nextFlightEnquiryId : Nat;
   };
 
   public func run(old : OldActor) : NewActor {
-    let newFlightEnquiries = old.flightEnquiries.map<OldFlightEnquiry, NewFlightEnquiry>(
-      func(oldEnquiry) {
-        {
-          oldEnquiry with
-          customerName = "Unknown";
-          customerPhone = "Not Provided";
-          customerEmail = null;
-        };
-      }
-    );
+    let newFlightEnquiries = Map.empty<Nat, NewFlightEnquiry>();
+
+    for (oldFlightEnquiry in old.flightEnquiries.values()) {
+      let newFlightEnquiry : NewFlightEnquiry = {
+        id = oldFlightEnquiry.id;
+        customerName = oldFlightEnquiry.customerName;
+        customerPhone = oldFlightEnquiry.customerPhone;
+        customerEmail = oldFlightEnquiry.customerEmail;
+        origin = oldFlightEnquiry.origin;
+        destination = oldFlightEnquiry.destination;
+        departureDate = oldFlightEnquiry.departureDate;
+        returnDate = oldFlightEnquiry.returnDate;
+        tripType = oldFlightEnquiry.tripType;
+        adultsCount = oldFlightEnquiry.passengerCount;
+        childrenCount = 0;
+        infantsCount = 0;
+        cabinClass = null;
+        specialRequests = oldFlightEnquiry.specialRequests;
+        status = "pending";
+      };
+
+      newFlightEnquiries.add(oldFlightEnquiry.id, newFlightEnquiry);
+    };
+
     {
-      old with
-      flightEnquiries = newFlightEnquiries
+      flightEnquiries = newFlightEnquiries;
+      nextFlightEnquiryId = old.nextEnquiryId;
     };
   };
 };

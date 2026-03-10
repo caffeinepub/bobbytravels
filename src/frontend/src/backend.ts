@@ -92,33 +92,120 @@ export class ExternalBlob {
 export interface FlightEnquiry {
     id: bigint;
     customerName: string;
+    status: string;
     destination: string;
+    cabinClass?: string;
     tripType: TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
-    passengerCount: bigint;
-    timestamp: bigint;
+    childrenCount: bigint;
     customerEmail?: string;
     returnDate?: string;
 }
 export interface FlightEnquiryInput {
     customerName: string;
     destination: string;
+    cabinClass?: string;
     tripType: TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
-    passengerCount: bigint;
+    childrenCount: bigint;
     customerEmail?: string;
     returnDate?: string;
+}
+export interface User {
+    id: bigint;
+    name: string;
+    email: string;
+    passwordHash: string;
+    isAdmin: boolean;
+    phone?: string;
+}
+export interface VisaEnquiry {
+    id: bigint;
+    customerName: string;
+    status: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber?: string;
+    customerEmail?: string;
+    specialNotes?: string;
+}
+export interface AdminStats {
+    totalPNREnquiries: bigint;
+    totalTourEnquiries: bigint;
+    totalFlightEnquiries: bigint;
+    totalVisaEnquiries: bigint;
+    totalUsers: bigint;
+}
+export interface TourEnquiryInput {
+    customerName: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests?: string;
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget?: string;
+    customerEmail?: string;
+}
+export interface VisaEnquiryInput {
+    customerName: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber?: string;
+    customerEmail?: string;
+    specialNotes?: string;
+}
+export interface TourEnquiry {
+    id: bigint;
+    customerName: string;
+    status: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests?: string;
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget?: string;
+    customerEmail?: string;
+}
+export type SessionToken = string;
+export interface PNREnquiry {
+    id: bigint;
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes?: string;
+    travelDate?: string;
+    airline: string;
+    customerEmail?: string;
 }
 export interface UserProfile {
     name: string;
     email: string;
     phone?: string;
+}
+export interface PNREnquiryInput {
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes?: string;
+    travelDate?: string;
+    airline: string;
+    customerEmail?: string;
 }
 export enum TripType {
     isFlexible = "isFlexible",
@@ -133,16 +220,29 @@ export enum UserRole {
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    claimAdminAccess(secret: string): Promise<void>;
-    getAllEnquiries(): Promise<Array<FlightEnquiry>>;
+    getAdminStats(token: SessionToken): Promise<AdminStats>;
+    getAllFlightEnquiries(token: SessionToken): Promise<Array<[bigint, FlightEnquiry]>>;
+    getAllPNREnquiries(token: SessionToken): Promise<Array<[bigint, PNREnquiry]>>;
+    getAllTourEnquiries(token: SessionToken): Promise<Array<[bigint, TourEnquiry]>>;
+    getAllUsers(token: SessionToken): Promise<Array<[bigint, User]>>;
+    getAllVisaEnquiries(token: SessionToken): Promise<Array<[bigint, VisaEnquiry]>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    loginUser(email: string, passwordHash: string): Promise<SessionToken>;
+    registerUser(email: string, passwordHash: string, name: string, phone: string | null): Promise<SessionToken>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    submitEnquiry(input: FlightEnquiryInput): Promise<void>;
+    submitFlightEnquiry(input: FlightEnquiryInput): Promise<bigint>;
+    submitPNREnquiry(input: PNREnquiryInput): Promise<bigint>;
+    submitTourEnquiry(input: TourEnquiryInput): Promise<bigint>;
+    submitVisaEnquiry(input: VisaEnquiryInput): Promise<bigint>;
+    updateFlightEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;
+    updateTourEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;
+    updateVisaEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;
+    validateSession(token: SessionToken): Promise<User | null>;
 }
-import type { FlightEnquiry as _FlightEnquiry, FlightEnquiryInput as _FlightEnquiryInput, TripType as _TripType, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { FlightEnquiry as _FlightEnquiry, FlightEnquiryInput as _FlightEnquiryInput, PNREnquiry as _PNREnquiry, PNREnquiryInput as _PNREnquiryInput, TourEnquiry as _TourEnquiry, TourEnquiryInput as _TourEnquiryInput, TripType as _TripType, User as _User, UserProfile as _UserProfile, UserRole as _UserRole, VisaEnquiry as _VisaEnquiry, VisaEnquiryInput as _VisaEnquiryInput } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -173,74 +273,130 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async claimAdminAccess(arg0: string): Promise<void> {
+    async getAdminStats(arg0: SessionToken): Promise<AdminStats> {
         if (this.processError) {
             try {
-                const result = await this.actor.claimAdminAccess(arg0);
+                const result = await this.actor.getAdminStats(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.claimAdminAccess(arg0);
+            const result = await this.actor.getAdminStats(arg0);
             return result;
         }
     }
-    async getAllEnquiries(): Promise<Array<FlightEnquiry>> {
+    async getAllFlightEnquiries(arg0: SessionToken): Promise<Array<[bigint, FlightEnquiry]>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAllEnquiries();
+                const result = await this.actor.getAllFlightEnquiries(arg0);
                 return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAllEnquiries();
+            const result = await this.actor.getAllFlightEnquiries(arg0);
             return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllPNREnquiries(arg0: SessionToken): Promise<Array<[bigint, PNREnquiry]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllPNREnquiries(arg0);
+                return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllPNREnquiries(arg0);
+            return from_candid_vec_n10(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllTourEnquiries(arg0: SessionToken): Promise<Array<[bigint, TourEnquiry]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllTourEnquiries(arg0);
+                return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllTourEnquiries(arg0);
+            return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllUsers(arg0: SessionToken): Promise<Array<[bigint, User]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllUsers(arg0);
+                return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllUsers(arg0);
+            return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllVisaEnquiries(arg0: SessionToken): Promise<Array<[bigint, VisaEnquiry]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllVisaEnquiries(arg0);
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllVisaEnquiries(arg0);
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n12(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n29(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n12(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n29(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -257,54 +413,324 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async loginUser(arg0: string, arg1: string): Promise<SessionToken> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.loginUser(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.loginUser(arg0, arg1);
+            return result;
+        }
+    }
+    async registerUser(arg0: string, arg1: string, arg2: string, arg3: string | null): Promise<SessionToken> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.registerUser(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.registerUser(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+            return result;
+        }
+    }
     async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n14(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n32(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n14(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n32(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
-    async submitEnquiry(arg0: FlightEnquiryInput): Promise<void> {
+    async submitFlightEnquiry(arg0: FlightEnquiryInput): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.submitEnquiry(to_candid_FlightEnquiryInput_n16(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.submitFlightEnquiry(to_candid_FlightEnquiryInput_n34(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.submitEnquiry(to_candid_FlightEnquiryInput_n16(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.submitFlightEnquiry(to_candid_FlightEnquiryInput_n34(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
+    async submitPNREnquiry(arg0: PNREnquiryInput): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitPNREnquiry(to_candid_PNREnquiryInput_n38(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitPNREnquiry(to_candid_PNREnquiryInput_n38(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async submitTourEnquiry(arg0: TourEnquiryInput): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitTourEnquiry(to_candid_TourEnquiryInput_n40(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitTourEnquiry(to_candid_TourEnquiryInput_n40(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async submitVisaEnquiry(arg0: VisaEnquiryInput): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitVisaEnquiry(to_candid_VisaEnquiryInput_n42(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitVisaEnquiry(to_candid_VisaEnquiryInput_n42(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async updateFlightEnquiryStatus(arg0: SessionToken, arg1: bigint, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateFlightEnquiryStatus(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateFlightEnquiryStatus(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async updateTourEnquiryStatus(arg0: SessionToken, arg1: bigint, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTourEnquiryStatus(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTourEnquiryStatus(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async updateVisaEnquiryStatus(arg0: SessionToken, arg1: bigint, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateVisaEnquiryStatus(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateVisaEnquiryStatus(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async validateSession(arg0: SessionToken): Promise<User | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.validateSession(arg0);
+                return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.validateSession(arg0);
+            return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
+        }
+    }
 }
-function from_candid_FlightEnquiry_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _FlightEnquiry): FlightEnquiry {
-    return from_candid_record_n5(_uploadFile, _downloadFile, value);
+function from_candid_FlightEnquiry_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _FlightEnquiry): FlightEnquiry {
+    return from_candid_record_n6(_uploadFile, _downloadFile, value);
 }
-function from_candid_TripType_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TripType): TripType {
-    return from_candid_variant_n7(_uploadFile, _downloadFile, value);
+function from_candid_PNREnquiry_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PNREnquiry): PNREnquiry {
+    return from_candid_record_n13(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserProfile_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
-    return from_candid_record_n11(_uploadFile, _downloadFile, value);
+function from_candid_TourEnquiry_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TourEnquiry): TourEnquiry {
+    return from_candid_record_n17(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n13(_uploadFile, _downloadFile, value);
+function from_candid_TripType_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TripType): TripType {
+    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_UserProfile_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserProfile): UserProfile {
+    return from_candid_record_n28(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n30(_uploadFile, _downloadFile, value);
+}
+function from_candid_User_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _User): User {
+    return from_candid_record_n21(_uploadFile, _downloadFile, value);
+}
+function from_candid_VisaEnquiry_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _VisaEnquiry): VisaEnquiry {
+    return from_candid_record_n25(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : from_candid_UserProfile_n27(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_User]): User | null {
+    return value.length === 0 ? null : from_candid_User_n20(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
-    return value.length === 0 ? null : from_candid_UserProfile_n10(_uploadFile, _downloadFile, value[0]);
+function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes: [] | [string];
+    travelDate: [] | [string];
+    airline: string;
+    customerEmail: [] | [string];
+}): {
+    id: bigint;
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes?: string;
+    travelDate?: string;
+    airline: string;
+    customerEmail?: string;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        customerPhone: value.customerPhone,
+        pnrNumber: value.pnrNumber,
+        notes: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.notes)),
+        travelDate: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.travelDate)),
+        airline: value.airline,
+        customerEmail: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.customerEmail))
+    };
 }
-function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    customerName: string;
+    status: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests: [] | [string];
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget: [] | [string];
+    customerEmail: [] | [string];
+}): {
+    id: bigint;
+    customerName: string;
+    status: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests?: string;
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget?: string;
+    customerEmail?: string;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        status: value.status,
+        adultsCount: value.adultsCount,
+        customerPhone: value.customerPhone,
+        specialRequests: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.specialRequests)),
+        travelDate: value.travelDate,
+        tourPackage: value.tourPackage,
+        childrenCount: value.childrenCount,
+        budget: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.budget)),
+        customerEmail: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.customerEmail))
+    };
+}
+function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    name: string;
+    email: string;
+    passwordHash: string;
+    isAdmin: boolean;
+    phone: [] | [string];
+}): {
+    id: bigint;
+    name: string;
+    email: string;
+    passwordHash: string;
+    isAdmin: boolean;
+    phone?: string;
+} {
+    return {
+        id: value.id,
+        name: value.name,
+        email: value.email,
+        passwordHash: value.passwordHash,
+        isAdmin: value.isAdmin,
+        phone: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.phone))
+    };
+}
+function from_candid_record_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: bigint;
+    customerName: string;
+    status: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber: [] | [string];
+    customerEmail: [] | [string];
+    specialNotes: [] | [string];
+}): {
+    id: bigint;
+    customerName: string;
+    status: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber?: string;
+    customerEmail?: string;
+    specialNotes?: string;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        status: value.status,
+        country: value.country,
+        customerPhone: value.customerPhone,
+        visaType: value.visaType,
+        travelDate: value.travelDate,
+        passportNumber: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.passportNumber)),
+        customerEmail: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.customerEmail)),
+        specialNotes: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.specialNotes))
+    };
+}
+function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
     email: string;
     phone: [] | [string];
@@ -316,52 +742,91 @@ function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         name: value.name,
         email: value.email,
-        phone: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.phone))
+        phone: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.phone))
     };
 }
-function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     customerName: string;
+    status: string;
     destination: string;
+    cabinClass: [] | [string];
     tripType: _TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests: [] | [string];
     origin: string;
-    passengerCount: bigint;
-    timestamp: bigint;
+    childrenCount: bigint;
     customerEmail: [] | [string];
     returnDate: [] | [string];
 }): {
     id: bigint;
     customerName: string;
+    status: string;
     destination: string;
+    cabinClass?: string;
     tripType: TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
-    passengerCount: bigint;
-    timestamp: bigint;
+    childrenCount: bigint;
     customerEmail?: string;
     returnDate?: string;
 } {
     return {
         id: value.id,
         customerName: value.customerName,
+        status: value.status,
         destination: value.destination,
-        tripType: from_candid_TripType_n6(_uploadFile, _downloadFile, value.tripType),
+        cabinClass: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.cabinClass)),
+        tripType: from_candid_TripType_n8(_uploadFile, _downloadFile, value.tripType),
+        infantsCount: value.infantsCount,
+        adultsCount: value.adultsCount,
         customerPhone: value.customerPhone,
         departureDate: value.departureDate,
-        specialRequests: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.specialRequests)),
+        specialRequests: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.specialRequests)),
         origin: value.origin,
-        passengerCount: value.passengerCount,
-        timestamp: value.timestamp,
-        customerEmail: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.customerEmail)),
-        returnDate: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.returnDate))
+        childrenCount: value.childrenCount,
+        customerEmail: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.customerEmail)),
+        returnDate: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.returnDate))
     };
 }
-function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_tuple_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [bigint, _PNREnquiry]): [bigint, PNREnquiry] {
+    return [
+        value[0],
+        from_candid_PNREnquiry_n12(_uploadFile, _downloadFile, value[1])
+    ];
+}
+function from_candid_tuple_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [bigint, _TourEnquiry]): [bigint, TourEnquiry] {
+    return [
+        value[0],
+        from_candid_TourEnquiry_n16(_uploadFile, _downloadFile, value[1])
+    ];
+}
+function from_candid_tuple_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [bigint, _User]): [bigint, User] {
+    return [
+        value[0],
+        from_candid_User_n20(_uploadFile, _downloadFile, value[1])
+    ];
+}
+function from_candid_tuple_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [bigint, _VisaEnquiry]): [bigint, VisaEnquiry] {
+    return [
+        value[0],
+        from_candid_VisaEnquiry_n24(_uploadFile, _downloadFile, value[1])
+    ];
+}
+function from_candid_tuple_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [bigint, _FlightEnquiry]): [bigint, FlightEnquiry] {
+    return [
+        value[0],
+        from_candid_FlightEnquiry_n5(_uploadFile, _downloadFile, value[1])
+    ];
+}
+function from_candid_variant_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -370,7 +835,7 @@ function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     isFlexible: null;
 } | {
     returnTrip: null;
@@ -379,22 +844,46 @@ function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): TripType {
     return "isFlexible" in value ? TripType.isFlexible : "returnTrip" in value ? TripType.returnTrip : "oneWay" in value ? TripType.oneWay : value;
 }
-function from_candid_vec_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FlightEnquiry>): Array<FlightEnquiry> {
-    return value.map((x)=>from_candid_FlightEnquiry_n4(_uploadFile, _downloadFile, x));
+function from_candid_vec_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[bigint, _PNREnquiry]>): Array<[bigint, PNREnquiry]> {
+    return value.map((x)=>from_candid_tuple_n11(_uploadFile, _downloadFile, x));
 }
-function to_candid_FlightEnquiryInput_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: FlightEnquiryInput): _FlightEnquiryInput {
-    return to_candid_record_n17(_uploadFile, _downloadFile, value);
+function from_candid_vec_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[bigint, _TourEnquiry]>): Array<[bigint, TourEnquiry]> {
+    return value.map((x)=>from_candid_tuple_n15(_uploadFile, _downloadFile, x));
 }
-function to_candid_TripType_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): _TripType {
-    return to_candid_variant_n19(_uploadFile, _downloadFile, value);
+function from_candid_vec_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[bigint, _User]>): Array<[bigint, User]> {
+    return value.map((x)=>from_candid_tuple_n19(_uploadFile, _downloadFile, x));
 }
-function to_candid_UserProfile_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
-    return to_candid_record_n15(_uploadFile, _downloadFile, value);
+function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[bigint, _VisaEnquiry]>): Array<[bigint, VisaEnquiry]> {
+    return value.map((x)=>from_candid_tuple_n23(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[bigint, _FlightEnquiry]>): Array<[bigint, FlightEnquiry]> {
+    return value.map((x)=>from_candid_tuple_n4(_uploadFile, _downloadFile, x));
+}
+function to_candid_FlightEnquiryInput_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: FlightEnquiryInput): _FlightEnquiryInput {
+    return to_candid_record_n35(_uploadFile, _downloadFile, value);
+}
+function to_candid_PNREnquiryInput_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PNREnquiryInput): _PNREnquiryInput {
+    return to_candid_record_n39(_uploadFile, _downloadFile, value);
+}
+function to_candid_TourEnquiryInput_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TourEnquiryInput): _TourEnquiryInput {
+    return to_candid_record_n41(_uploadFile, _downloadFile, value);
+}
+function to_candid_TripType_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): _TripType {
+    return to_candid_variant_n37(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserProfile_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserProfile): _UserProfile {
+    return to_candid_record_n33(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_VisaEnquiryInput_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: VisaEnquiryInput): _VisaEnquiryInput {
+    return to_candid_record_n43(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
+    return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
     email: string;
     phone?: string;
@@ -409,56 +898,140 @@ function to_candid_record_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         phone: value.phone ? candid_some(value.phone) : candid_none()
     };
 }
-function to_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_record_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     customerName: string;
     destination: string;
+    cabinClass?: string;
     tripType: TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests?: string;
     origin: string;
-    passengerCount: bigint;
+    childrenCount: bigint;
     customerEmail?: string;
     returnDate?: string;
 }): {
     customerName: string;
     destination: string;
+    cabinClass: [] | [string];
     tripType: _TripType;
+    infantsCount: bigint;
+    adultsCount: bigint;
     customerPhone: string;
     departureDate: string;
     specialRequests: [] | [string];
     origin: string;
-    passengerCount: bigint;
+    childrenCount: bigint;
     customerEmail: [] | [string];
     returnDate: [] | [string];
 } {
     return {
         customerName: value.customerName,
         destination: value.destination,
-        tripType: to_candid_TripType_n18(_uploadFile, _downloadFile, value.tripType),
+        cabinClass: value.cabinClass ? candid_some(value.cabinClass) : candid_none(),
+        tripType: to_candid_TripType_n36(_uploadFile, _downloadFile, value.tripType),
+        infantsCount: value.infantsCount,
+        adultsCount: value.adultsCount,
         customerPhone: value.customerPhone,
         departureDate: value.departureDate,
         specialRequests: value.specialRequests ? candid_some(value.specialRequests) : candid_none(),
         origin: value.origin,
-        passengerCount: value.passengerCount,
+        childrenCount: value.childrenCount,
         customerEmail: value.customerEmail ? candid_some(value.customerEmail) : candid_none(),
         returnDate: value.returnDate ? candid_some(value.returnDate) : candid_none()
     };
 }
-function to_candid_variant_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): {
-    isFlexible: null;
-} | {
-    returnTrip: null;
-} | {
-    oneWay: null;
+function to_candid_record_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes?: string;
+    travelDate?: string;
+    airline: string;
+    customerEmail?: string;
+}): {
+    customerName: string;
+    customerPhone: string;
+    pnrNumber: string;
+    notes: [] | [string];
+    travelDate: [] | [string];
+    airline: string;
+    customerEmail: [] | [string];
 } {
-    return value == TripType.isFlexible ? {
-        isFlexible: null
-    } : value == TripType.returnTrip ? {
-        returnTrip: null
-    } : value == TripType.oneWay ? {
-        oneWay: null
-    } : value;
+    return {
+        customerName: value.customerName,
+        customerPhone: value.customerPhone,
+        pnrNumber: value.pnrNumber,
+        notes: value.notes ? candid_some(value.notes) : candid_none(),
+        travelDate: value.travelDate ? candid_some(value.travelDate) : candid_none(),
+        airline: value.airline,
+        customerEmail: value.customerEmail ? candid_some(value.customerEmail) : candid_none()
+    };
+}
+function to_candid_record_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    customerName: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests?: string;
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget?: string;
+    customerEmail?: string;
+}): {
+    customerName: string;
+    adultsCount: bigint;
+    customerPhone: string;
+    specialRequests: [] | [string];
+    travelDate: string;
+    tourPackage: string;
+    childrenCount: bigint;
+    budget: [] | [string];
+    customerEmail: [] | [string];
+} {
+    return {
+        customerName: value.customerName,
+        adultsCount: value.adultsCount,
+        customerPhone: value.customerPhone,
+        specialRequests: value.specialRequests ? candid_some(value.specialRequests) : candid_none(),
+        travelDate: value.travelDate,
+        tourPackage: value.tourPackage,
+        childrenCount: value.childrenCount,
+        budget: value.budget ? candid_some(value.budget) : candid_none(),
+        customerEmail: value.customerEmail ? candid_some(value.customerEmail) : candid_none()
+    };
+}
+function to_candid_record_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    customerName: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber?: string;
+    customerEmail?: string;
+    specialNotes?: string;
+}): {
+    customerName: string;
+    country: string;
+    customerPhone: string;
+    visaType: string;
+    travelDate: string;
+    passportNumber: [] | [string];
+    customerEmail: [] | [string];
+    specialNotes: [] | [string];
+} {
+    return {
+        customerName: value.customerName,
+        country: value.country,
+        customerPhone: value.customerPhone,
+        visaType: value.visaType,
+        travelDate: value.travelDate,
+        passportNumber: value.passportNumber ? candid_some(value.passportNumber) : candid_none(),
+        customerEmail: value.customerEmail ? candid_some(value.customerEmail) : candid_none(),
+        specialNotes: value.specialNotes ? candid_some(value.specialNotes) : candid_none()
+    };
 }
 function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
     admin: null;
@@ -473,6 +1046,21 @@ function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         user: null
     } : value == UserRole.guest ? {
         guest: null
+    } : value;
+}
+function to_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: TripType): {
+    isFlexible: null;
+} | {
+    returnTrip: null;
+} | {
+    oneWay: null;
+} {
+    return value == TripType.isFlexible ? {
+        isFlexible: null
+    } : value == TripType.returnTrip ? {
+        returnTrip: null
+    } : value == TripType.oneWay ? {
+        oneWay: null
     } : value;
 }
 export interface CreateActorOptions {

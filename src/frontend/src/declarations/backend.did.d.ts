@@ -10,35 +10,100 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AdminStats {
+  'totalPNREnquiries' : bigint,
+  'totalTourEnquiries' : bigint,
+  'totalFlightEnquiries' : bigint,
+  'totalVisaEnquiries' : bigint,
+  'totalUsers' : bigint,
+}
 export interface FlightEnquiry {
   'id' : bigint,
   'customerName' : string,
+  'status' : string,
   'destination' : string,
+  'cabinClass' : [] | [string],
   'tripType' : TripType,
+  'infantsCount' : bigint,
+  'adultsCount' : bigint,
   'customerPhone' : string,
   'departureDate' : string,
   'specialRequests' : [] | [string],
   'origin' : string,
-  'passengerCount' : bigint,
-  'timestamp' : bigint,
+  'childrenCount' : bigint,
   'customerEmail' : [] | [string],
   'returnDate' : [] | [string],
 }
 export interface FlightEnquiryInput {
   'customerName' : string,
   'destination' : string,
+  'cabinClass' : [] | [string],
   'tripType' : TripType,
+  'infantsCount' : bigint,
+  'adultsCount' : bigint,
   'customerPhone' : string,
   'departureDate' : string,
   'specialRequests' : [] | [string],
   'origin' : string,
-  'passengerCount' : bigint,
+  'childrenCount' : bigint,
   'customerEmail' : [] | [string],
   'returnDate' : [] | [string],
+}
+export interface PNREnquiry {
+  'id' : bigint,
+  'customerName' : string,
+  'customerPhone' : string,
+  'pnrNumber' : string,
+  'notes' : [] | [string],
+  'travelDate' : [] | [string],
+  'airline' : string,
+  'customerEmail' : [] | [string],
+}
+export interface PNREnquiryInput {
+  'customerName' : string,
+  'customerPhone' : string,
+  'pnrNumber' : string,
+  'notes' : [] | [string],
+  'travelDate' : [] | [string],
+  'airline' : string,
+  'customerEmail' : [] | [string],
+}
+export type SessionToken = string;
+export interface TourEnquiry {
+  'id' : bigint,
+  'customerName' : string,
+  'status' : string,
+  'adultsCount' : bigint,
+  'customerPhone' : string,
+  'specialRequests' : [] | [string],
+  'travelDate' : string,
+  'tourPackage' : string,
+  'childrenCount' : bigint,
+  'budget' : [] | [string],
+  'customerEmail' : [] | [string],
+}
+export interface TourEnquiryInput {
+  'customerName' : string,
+  'adultsCount' : bigint,
+  'customerPhone' : string,
+  'specialRequests' : [] | [string],
+  'travelDate' : string,
+  'tourPackage' : string,
+  'childrenCount' : bigint,
+  'budget' : [] | [string],
+  'customerEmail' : [] | [string],
 }
 export type TripType = { 'isFlexible' : null } |
   { 'returnTrip' : null } |
   { 'oneWay' : null };
+export interface User {
+  'id' : bigint,
+  'name' : string,
+  'email' : string,
+  'passwordHash' : string,
+  'isAdmin' : boolean,
+  'phone' : [] | [string],
+}
 export interface UserProfile {
   'name' : string,
   'email' : string,
@@ -47,17 +112,76 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface VisaEnquiry {
+  'id' : bigint,
+  'customerName' : string,
+  'status' : string,
+  'country' : string,
+  'customerPhone' : string,
+  'visaType' : string,
+  'travelDate' : string,
+  'passportNumber' : [] | [string],
+  'customerEmail' : [] | [string],
+  'specialNotes' : [] | [string],
+}
+export interface VisaEnquiryInput {
+  'customerName' : string,
+  'country' : string,
+  'customerPhone' : string,
+  'visaType' : string,
+  'travelDate' : string,
+  'passportNumber' : [] | [string],
+  'customerEmail' : [] | [string],
+  'specialNotes' : [] | [string],
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'claimAdminAccess' : ActorMethod<[string], undefined>,
-  'getAllEnquiries' : ActorMethod<[], Array<FlightEnquiry>>,
+  'getAdminStats' : ActorMethod<[SessionToken], AdminStats>,
+  'getAllFlightEnquiries' : ActorMethod<
+    [SessionToken],
+    Array<[bigint, FlightEnquiry]>
+  >,
+  'getAllPNREnquiries' : ActorMethod<
+    [SessionToken],
+    Array<[bigint, PNREnquiry]>
+  >,
+  'getAllTourEnquiries' : ActorMethod<
+    [SessionToken],
+    Array<[bigint, TourEnquiry]>
+  >,
+  'getAllUsers' : ActorMethod<[SessionToken], Array<[bigint, User]>>,
+  'getAllVisaEnquiries' : ActorMethod<
+    [SessionToken],
+    Array<[bigint, VisaEnquiry]>
+  >,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'loginUser' : ActorMethod<[string, string], SessionToken>,
+  'registerUser' : ActorMethod<
+    [string, string, string, [] | [string]],
+    SessionToken
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'submitEnquiry' : ActorMethod<[FlightEnquiryInput], undefined>,
+  'submitFlightEnquiry' : ActorMethod<[FlightEnquiryInput], bigint>,
+  'submitPNREnquiry' : ActorMethod<[PNREnquiryInput], bigint>,
+  'submitTourEnquiry' : ActorMethod<[TourEnquiryInput], bigint>,
+  'submitVisaEnquiry' : ActorMethod<[VisaEnquiryInput], bigint>,
+  'updateFlightEnquiryStatus' : ActorMethod<
+    [SessionToken, bigint, string],
+    undefined
+  >,
+  'updateTourEnquiryStatus' : ActorMethod<
+    [SessionToken, bigint, string],
+    undefined
+  >,
+  'updateVisaEnquiryStatus' : ActorMethod<
+    [SessionToken, bigint, string],
+    undefined
+  >,
+  'validateSession' : ActorMethod<[SessionToken], [] | [User]>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

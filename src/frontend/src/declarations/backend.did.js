@@ -13,6 +13,14 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const SessionToken = IDL.Text;
+export const AdminStats = IDL.Record({
+  'totalPNREnquiries' : IDL.Nat,
+  'totalTourEnquiries' : IDL.Nat,
+  'totalFlightEnquiries' : IDL.Nat,
+  'totalVisaEnquiries' : IDL.Nat,
+  'totalUsers' : IDL.Nat,
+});
 export const TripType = IDL.Variant({
   'isFlexible' : IDL.Null,
   'returnTrip' : IDL.Null,
@@ -21,16 +29,62 @@ export const TripType = IDL.Variant({
 export const FlightEnquiry = IDL.Record({
   'id' : IDL.Nat,
   'customerName' : IDL.Text,
+  'status' : IDL.Text,
   'destination' : IDL.Text,
+  'cabinClass' : IDL.Opt(IDL.Text),
   'tripType' : TripType,
+  'infantsCount' : IDL.Nat,
+  'adultsCount' : IDL.Nat,
   'customerPhone' : IDL.Text,
   'departureDate' : IDL.Text,
   'specialRequests' : IDL.Opt(IDL.Text),
   'origin' : IDL.Text,
-  'passengerCount' : IDL.Nat,
-  'timestamp' : IDL.Int,
+  'childrenCount' : IDL.Nat,
   'customerEmail' : IDL.Opt(IDL.Text),
   'returnDate' : IDL.Opt(IDL.Text),
+});
+export const PNREnquiry = IDL.Record({
+  'id' : IDL.Nat,
+  'customerName' : IDL.Text,
+  'customerPhone' : IDL.Text,
+  'pnrNumber' : IDL.Text,
+  'notes' : IDL.Opt(IDL.Text),
+  'travelDate' : IDL.Opt(IDL.Text),
+  'airline' : IDL.Text,
+  'customerEmail' : IDL.Opt(IDL.Text),
+});
+export const TourEnquiry = IDL.Record({
+  'id' : IDL.Nat,
+  'customerName' : IDL.Text,
+  'status' : IDL.Text,
+  'adultsCount' : IDL.Nat,
+  'customerPhone' : IDL.Text,
+  'specialRequests' : IDL.Opt(IDL.Text),
+  'travelDate' : IDL.Text,
+  'tourPackage' : IDL.Text,
+  'childrenCount' : IDL.Nat,
+  'budget' : IDL.Opt(IDL.Text),
+  'customerEmail' : IDL.Opt(IDL.Text),
+});
+export const User = IDL.Record({
+  'id' : IDL.Nat,
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+  'passwordHash' : IDL.Text,
+  'isAdmin' : IDL.Bool,
+  'phone' : IDL.Opt(IDL.Text),
+});
+export const VisaEnquiry = IDL.Record({
+  'id' : IDL.Nat,
+  'customerName' : IDL.Text,
+  'status' : IDL.Text,
+  'country' : IDL.Text,
+  'customerPhone' : IDL.Text,
+  'visaType' : IDL.Text,
+  'travelDate' : IDL.Text,
+  'passportNumber' : IDL.Opt(IDL.Text),
+  'customerEmail' : IDL.Opt(IDL.Text),
+  'specialNotes' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
@@ -40,21 +94,78 @@ export const UserProfile = IDL.Record({
 export const FlightEnquiryInput = IDL.Record({
   'customerName' : IDL.Text,
   'destination' : IDL.Text,
+  'cabinClass' : IDL.Opt(IDL.Text),
   'tripType' : TripType,
+  'infantsCount' : IDL.Nat,
+  'adultsCount' : IDL.Nat,
   'customerPhone' : IDL.Text,
   'departureDate' : IDL.Text,
   'specialRequests' : IDL.Opt(IDL.Text),
   'origin' : IDL.Text,
-  'passengerCount' : IDL.Nat,
+  'childrenCount' : IDL.Nat,
   'customerEmail' : IDL.Opt(IDL.Text),
   'returnDate' : IDL.Opt(IDL.Text),
+});
+export const PNREnquiryInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'customerPhone' : IDL.Text,
+  'pnrNumber' : IDL.Text,
+  'notes' : IDL.Opt(IDL.Text),
+  'travelDate' : IDL.Opt(IDL.Text),
+  'airline' : IDL.Text,
+  'customerEmail' : IDL.Opt(IDL.Text),
+});
+export const TourEnquiryInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'adultsCount' : IDL.Nat,
+  'customerPhone' : IDL.Text,
+  'specialRequests' : IDL.Opt(IDL.Text),
+  'travelDate' : IDL.Text,
+  'tourPackage' : IDL.Text,
+  'childrenCount' : IDL.Nat,
+  'budget' : IDL.Opt(IDL.Text),
+  'customerEmail' : IDL.Opt(IDL.Text),
+});
+export const VisaEnquiryInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'country' : IDL.Text,
+  'customerPhone' : IDL.Text,
+  'visaType' : IDL.Text,
+  'travelDate' : IDL.Text,
+  'passportNumber' : IDL.Opt(IDL.Text),
+  'customerEmail' : IDL.Opt(IDL.Text),
+  'specialNotes' : IDL.Opt(IDL.Text),
 });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'claimAdminAccess' : IDL.Func([IDL.Text], [], []),
-  'getAllEnquiries' : IDL.Func([], [IDL.Vec(FlightEnquiry)], ['query']),
+  'getAdminStats' : IDL.Func([SessionToken], [AdminStats], ['query']),
+  'getAllFlightEnquiries' : IDL.Func(
+      [SessionToken],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, FlightEnquiry))],
+      ['query'],
+    ),
+  'getAllPNREnquiries' : IDL.Func(
+      [SessionToken],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, PNREnquiry))],
+      ['query'],
+    ),
+  'getAllTourEnquiries' : IDL.Func(
+      [SessionToken],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, TourEnquiry))],
+      ['query'],
+    ),
+  'getAllUsers' : IDL.Func(
+      [SessionToken],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, User))],
+      ['query'],
+    ),
+  'getAllVisaEnquiries' : IDL.Func(
+      [SessionToken],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, VisaEnquiry))],
+      ['query'],
+    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getUserProfile' : IDL.Func(
@@ -63,8 +174,33 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'loginUser' : IDL.Func([IDL.Text, IDL.Text], [SessionToken], []),
+  'registerUser' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [SessionToken],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'submitEnquiry' : IDL.Func([FlightEnquiryInput], [], []),
+  'submitFlightEnquiry' : IDL.Func([FlightEnquiryInput], [IDL.Nat], []),
+  'submitPNREnquiry' : IDL.Func([PNREnquiryInput], [IDL.Nat], []),
+  'submitTourEnquiry' : IDL.Func([TourEnquiryInput], [IDL.Nat], []),
+  'submitVisaEnquiry' : IDL.Func([VisaEnquiryInput], [IDL.Nat], []),
+  'updateFlightEnquiryStatus' : IDL.Func(
+      [SessionToken, IDL.Nat, IDL.Text],
+      [],
+      [],
+    ),
+  'updateTourEnquiryStatus' : IDL.Func(
+      [SessionToken, IDL.Nat, IDL.Text],
+      [],
+      [],
+    ),
+  'updateVisaEnquiryStatus' : IDL.Func(
+      [SessionToken, IDL.Nat, IDL.Text],
+      [],
+      [],
+    ),
+  'validateSession' : IDL.Func([SessionToken], [IDL.Opt(User)], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -75,6 +211,14 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const SessionToken = IDL.Text;
+  const AdminStats = IDL.Record({
+    'totalPNREnquiries' : IDL.Nat,
+    'totalTourEnquiries' : IDL.Nat,
+    'totalFlightEnquiries' : IDL.Nat,
+    'totalVisaEnquiries' : IDL.Nat,
+    'totalUsers' : IDL.Nat,
+  });
   const TripType = IDL.Variant({
     'isFlexible' : IDL.Null,
     'returnTrip' : IDL.Null,
@@ -83,16 +227,62 @@ export const idlFactory = ({ IDL }) => {
   const FlightEnquiry = IDL.Record({
     'id' : IDL.Nat,
     'customerName' : IDL.Text,
+    'status' : IDL.Text,
     'destination' : IDL.Text,
+    'cabinClass' : IDL.Opt(IDL.Text),
     'tripType' : TripType,
+    'infantsCount' : IDL.Nat,
+    'adultsCount' : IDL.Nat,
     'customerPhone' : IDL.Text,
     'departureDate' : IDL.Text,
     'specialRequests' : IDL.Opt(IDL.Text),
     'origin' : IDL.Text,
-    'passengerCount' : IDL.Nat,
-    'timestamp' : IDL.Int,
+    'childrenCount' : IDL.Nat,
     'customerEmail' : IDL.Opt(IDL.Text),
     'returnDate' : IDL.Opt(IDL.Text),
+  });
+  const PNREnquiry = IDL.Record({
+    'id' : IDL.Nat,
+    'customerName' : IDL.Text,
+    'customerPhone' : IDL.Text,
+    'pnrNumber' : IDL.Text,
+    'notes' : IDL.Opt(IDL.Text),
+    'travelDate' : IDL.Opt(IDL.Text),
+    'airline' : IDL.Text,
+    'customerEmail' : IDL.Opt(IDL.Text),
+  });
+  const TourEnquiry = IDL.Record({
+    'id' : IDL.Nat,
+    'customerName' : IDL.Text,
+    'status' : IDL.Text,
+    'adultsCount' : IDL.Nat,
+    'customerPhone' : IDL.Text,
+    'specialRequests' : IDL.Opt(IDL.Text),
+    'travelDate' : IDL.Text,
+    'tourPackage' : IDL.Text,
+    'childrenCount' : IDL.Nat,
+    'budget' : IDL.Opt(IDL.Text),
+    'customerEmail' : IDL.Opt(IDL.Text),
+  });
+  const User = IDL.Record({
+    'id' : IDL.Nat,
+    'name' : IDL.Text,
+    'email' : IDL.Text,
+    'passwordHash' : IDL.Text,
+    'isAdmin' : IDL.Bool,
+    'phone' : IDL.Opt(IDL.Text),
+  });
+  const VisaEnquiry = IDL.Record({
+    'id' : IDL.Nat,
+    'customerName' : IDL.Text,
+    'status' : IDL.Text,
+    'country' : IDL.Text,
+    'customerPhone' : IDL.Text,
+    'visaType' : IDL.Text,
+    'travelDate' : IDL.Text,
+    'passportNumber' : IDL.Opt(IDL.Text),
+    'customerEmail' : IDL.Opt(IDL.Text),
+    'specialNotes' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
@@ -102,21 +292,78 @@ export const idlFactory = ({ IDL }) => {
   const FlightEnquiryInput = IDL.Record({
     'customerName' : IDL.Text,
     'destination' : IDL.Text,
+    'cabinClass' : IDL.Opt(IDL.Text),
     'tripType' : TripType,
+    'infantsCount' : IDL.Nat,
+    'adultsCount' : IDL.Nat,
     'customerPhone' : IDL.Text,
     'departureDate' : IDL.Text,
     'specialRequests' : IDL.Opt(IDL.Text),
     'origin' : IDL.Text,
-    'passengerCount' : IDL.Nat,
+    'childrenCount' : IDL.Nat,
     'customerEmail' : IDL.Opt(IDL.Text),
     'returnDate' : IDL.Opt(IDL.Text),
+  });
+  const PNREnquiryInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'customerPhone' : IDL.Text,
+    'pnrNumber' : IDL.Text,
+    'notes' : IDL.Opt(IDL.Text),
+    'travelDate' : IDL.Opt(IDL.Text),
+    'airline' : IDL.Text,
+    'customerEmail' : IDL.Opt(IDL.Text),
+  });
+  const TourEnquiryInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'adultsCount' : IDL.Nat,
+    'customerPhone' : IDL.Text,
+    'specialRequests' : IDL.Opt(IDL.Text),
+    'travelDate' : IDL.Text,
+    'tourPackage' : IDL.Text,
+    'childrenCount' : IDL.Nat,
+    'budget' : IDL.Opt(IDL.Text),
+    'customerEmail' : IDL.Opt(IDL.Text),
+  });
+  const VisaEnquiryInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'country' : IDL.Text,
+    'customerPhone' : IDL.Text,
+    'visaType' : IDL.Text,
+    'travelDate' : IDL.Text,
+    'passportNumber' : IDL.Opt(IDL.Text),
+    'customerEmail' : IDL.Opt(IDL.Text),
+    'specialNotes' : IDL.Opt(IDL.Text),
   });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'claimAdminAccess' : IDL.Func([IDL.Text], [], []),
-    'getAllEnquiries' : IDL.Func([], [IDL.Vec(FlightEnquiry)], ['query']),
+    'getAdminStats' : IDL.Func([SessionToken], [AdminStats], ['query']),
+    'getAllFlightEnquiries' : IDL.Func(
+        [SessionToken],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, FlightEnquiry))],
+        ['query'],
+      ),
+    'getAllPNREnquiries' : IDL.Func(
+        [SessionToken],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, PNREnquiry))],
+        ['query'],
+      ),
+    'getAllTourEnquiries' : IDL.Func(
+        [SessionToken],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, TourEnquiry))],
+        ['query'],
+      ),
+    'getAllUsers' : IDL.Func(
+        [SessionToken],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, User))],
+        ['query'],
+      ),
+    'getAllVisaEnquiries' : IDL.Func(
+        [SessionToken],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, VisaEnquiry))],
+        ['query'],
+      ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getUserProfile' : IDL.Func(
@@ -125,8 +372,33 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'loginUser' : IDL.Func([IDL.Text, IDL.Text], [SessionToken], []),
+    'registerUser' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+        [SessionToken],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'submitEnquiry' : IDL.Func([FlightEnquiryInput], [], []),
+    'submitFlightEnquiry' : IDL.Func([FlightEnquiryInput], [IDL.Nat], []),
+    'submitPNREnquiry' : IDL.Func([PNREnquiryInput], [IDL.Nat], []),
+    'submitTourEnquiry' : IDL.Func([TourEnquiryInput], [IDL.Nat], []),
+    'submitVisaEnquiry' : IDL.Func([VisaEnquiryInput], [IDL.Nat], []),
+    'updateFlightEnquiryStatus' : IDL.Func(
+        [SessionToken, IDL.Nat, IDL.Text],
+        [],
+        [],
+      ),
+    'updateTourEnquiryStatus' : IDL.Func(
+        [SessionToken, IDL.Nat, IDL.Text],
+        [],
+        [],
+      ),
+    'updateVisaEnquiryStatus' : IDL.Func(
+        [SessionToken, IDL.Nat, IDL.Text],
+        [],
+        [],
+      ),
+    'validateSession' : IDL.Func([SessionToken], [IDL.Opt(User)], ['query']),
   });
 };
 
