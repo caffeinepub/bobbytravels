@@ -10,7 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { motion } from "motion/react";
-import type { Page } from "../App";
+import type { UserPage as Page } from "./UserApp";
 
 interface HomePageProps {
   onNavigate: (page: Page) => void;

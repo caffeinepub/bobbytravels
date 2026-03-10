@@ -8,12 +8,12 @@ import Array "mo:core/Array";
 import Iter "mo:core/Iter";
 import Int "mo:core/Int";
 import Principal "mo:core/Principal";
-import Migration "migration";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 // Migrate old stable state to new stable state using migration module
-(with migration = Migration.run)
+
 actor {
   let adminEmail = "adityabholath@gmail.com";
   var nextUserId = 1;

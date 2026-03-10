@@ -1,21 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { LogOut, Menu, Plane, User, X } from "lucide-react";
+import { Menu, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Page } from "../App";
-import { useAuth } from "../contexts/AuthContext";
+import type { UserPage } from "../pages/UserApp";
 
 interface NavbarProps {
-  currentPage: Page;
-  onNavigate: (page: Page) => void;
+  currentPage: UserPage;
+  onNavigate: (page: UserPage) => void;
+  hideAuth?: boolean;
 }
 
-export function Navbar({ currentPage, onNavigate }: NavbarProps) {
+export function Navbar({
+  currentPage,
+  onNavigate,
+  hideAuth = false,
+}: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { currentUser, isAdmin, logout } = useAuth();
 
-  const baseLinks: { label: string; page: Page; ocid: string }[] = [
+  const navLinks: { label: string; page: UserPage; ocid: string }[] = [
     { label: "Home", page: "home", ocid: "nav.home.link" },
     { label: "Book Flight", page: "search", ocid: "nav.search.link" },
     { label: "Visa", page: "visa", ocid: "nav.visa.link" },
@@ -24,32 +27,16 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
     { label: "Contact", page: "contact", ocid: "nav.contact.link" },
   ];
 
-  const navLinks = isAdmin
-    ? [
-        ...baseLinks,
-        {
-          label: "Dashboard",
-          page: "dashboard" as Page,
-          ocid: "nav.dashboard.link",
-        },
-      ]
-    : baseLinks;
-
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleNav = (page: Page) => {
+  const handleNav = (page: UserPage) => {
     onNavigate(page);
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleLogout = () => {
-    logout();
-    handleNav("home");
   };
 
   return (
@@ -97,28 +84,12 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                 {link.label}
               </button>
             ))}
-            {currentUser ? (
-              <div className="flex items-center gap-2 ml-2">
-                <span className="text-white/70 text-sm flex items-center gap-1">
-                  <User className="w-3.5 h-3.5" />
-                  {currentUser.name.split(" ")[0]}
-                </span>
-                <Button
-                  data-ocid="nav.logout.button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 px-2"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ) : (
+            {!hideAuth && (
               <Button
                 data-ocid="nav.login.button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleNav("login")}
+                onClick={() => {}}
                 className="ml-2 border-gold/50 text-gold hover:bg-gold hover:text-navy-dark h-8"
               >
                 Login
@@ -171,24 +142,6 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                         {link.label}
                       </button>
                     ))}
-                    {currentUser ? (
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-white/10 text-left mt-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Logout ({currentUser.name.split(" ")[0]})
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleNav("login")}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gold hover:bg-white/10 text-left mt-2"
-                      >
-                        Login / Register
-                      </button>
-                    )}
                   </div>
                   <div className="p-5 border-t border-white/10">
                     <p className="text-white/40 text-xs">

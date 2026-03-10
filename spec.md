@@ -1,34 +1,30 @@
-# BobbyTravels - Full Rebuild
+# BobbyTravels
 
 ## Current State
-Existing app has: Home, Book Flight search form (with airport dropdown, passengers, trip type), Payment page, Contact page, Leads dashboard (admin only), Users page. Auth uses Internet Identity (causing confusion). Zoho SalesIQ chat widget embedded. No Visa/Tour/PNR pages.
+Single React app serving both user pages and admin dashboard. Admin access is gated by email (adityabholath@gmail.com auto-gets admin flag). The Navbar shows a Dashboard link when isAdmin is true. Login/Register is available on the main site.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Visa Services page**: Enquiry form for visa assistance (country, visa type, travel date, passport details, special notes). Submissions stored in backend.
-- **Tour Packages page**: Display of popular tour packages with enquiry form. Submissions stored in backend.
-- **Login/Registration page**: Simple email + password stored in backend canister. Admin email (adityabholath@gmail.com) gets admin role automatically on first registration.
-- **PNR Enquiry**: Form where customer enters PNR number + airline + email; admin can view and respond via WhatsApp or email.
-- **Admin Dashboard**: Single page showing stats (total leads, visa enquiries, tour enquiries, PNR requests, registered users) plus tabs for each data type.
-- **Promotions tab in admin**: Compose a WhatsApp broadcast message to all customers who provided phone numbers.
-- User registration/login backend with email+password (hashed), session token management.
+- Hostname detection logic in App.tsx to differentiate between main domain and admin subdomain
+- `AdminApp` component: renders only admin login and admin dashboard (no user pages, no public navbar)
+- Admin-only registration guard on the admin subdomain (only adityabholath@gmail.com can register/login there)
+- Dedicated admin login page with admin branding for the subdomain
 
 ### Modify
-- **Navbar**: Add Visa, Tours, and Login links. Admin sees Dashboard link instead of separate Leads/Users.
-- **Home page**: Add sections for Visa Services and Tour Packages teasers.
-- **Backend**: Add visa enquiry, tour enquiry, PNR enquiry types. Add user registration/login with email+password. Admin auto-grant for specific email. Promotions list (phone number collection).
-- **Flight enquiry**: Allow anonymous submissions (remove login requirement for customers).
+- `App.tsx`: detect `window.location.hostname` -- if it includes `admin.`, render `AdminApp`; otherwise render normal user `UserApp`
+- `Navbar.tsx`: remove Dashboard link and Login button from main user site (users don't log in on main domain)
+- `LoginPage.tsx`: keep as-is for admin subdomain use only (move login to admin subdomain)
+- Main site: remove Login page route and Login button from navbar
 
 ### Remove
-- Separate Leads page and Users page (merged into unified Admin Dashboard with tabs)
-- Internet Identity login references
+- Login/Register route from the main user-facing site
+- Admin Dashboard route from the main user-facing site
+- Dashboard link from the main site navbar
 
 ## Implementation Plan
-1. Update backend: user registration (email+password), visa enquiries, tour enquiries, PNR enquiries, admin check by email.
-2. Frontend: Login/Register page with email+password form.
-3. Frontend: Visa Services page with enquiry form.
-4. Frontend: Tour Packages page with packages display and enquiry form.
-5. Frontend: Admin Dashboard page with stats + tabs (Flights, Visa, Tours, PNR, Users, Promotions).
-6. Update Navbar, App.tsx routing, HomePage teaser sections.
-7. Ensure Zoho SalesIQ chat widget remains.
+1. Update `App.tsx` to split into `UserApp` (main domain) and `AdminApp` (admin subdomain)
+2. Create `AdminApp` component with admin-only login + dashboard
+3. Create `AdminLoginPage` that only allows admin email to register/login
+4. Update `Navbar` to remove Login and Dashboard links (user site has no auth)
+5. Create `AdminNavbar` for the admin subdomain
