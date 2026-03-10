@@ -1,30 +1,31 @@
 # BobbyTravels
 
 ## Current State
-Single React app serving both user pages and admin dashboard. Admin access is gated by email (adityabholath@gmail.com auto-gets admin flag). The Navbar shows a Dashboard link when isAdmin is true. Login/Register is available on the main site.
+SearchPage is a single enquiry form. Users fill in origin/destination/dates/passengers/cabin and submit directly to WhatsApp and save as a lead. No live Amadeus flight search or results page exists.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Hostname detection logic in App.tsx to differentiate between main domain and admin subdomain
-- `AdminApp` component: renders only admin login and admin dashboard (no user pages, no public navbar)
-- Admin-only registration guard on the admin subdomain (only adityabholath@gmail.com can register/login there)
-- Dedicated admin login page with admin branding for the subdomain
+- Amadeus test API integration (token fetch + flight-offers search)
+- Flight results page showing portal-style cards: airline logo/name, flight number, departure/arrival times, duration, stops, price per person
+- "Select & Enquire" button on each flight card that opens a mini contact form pre-filled with flight details
+- Inquiry submission from selected flight: saves lead to backend + opens WhatsApp with full flight details
+- Loading state while searching
+- Error/no-results state
 
 ### Modify
-- `App.tsx`: detect `window.location.hostname` -- if it includes `admin.`, render `AdminApp`; otherwise render normal user `UserApp`
-- `Navbar.tsx`: remove Dashboard link and Login button from main user site (users don't log in on main domain)
-- `LoginPage.tsx`: keep as-is for admin subdomain use only (move login to admin subdomain)
-- Main site: remove Login page route and Login button from navbar
+- SearchPage: split into Step 1 (search form) and Step 2 (results + select flow)
+- Search button label changed to "Search Flights" (not "Get Deals on WhatsApp")
+- Contact details moved to the post-selection inquiry step, not the search form
 
 ### Remove
-- Login/Register route from the main user-facing site
-- Admin Dashboard route from the main user-facing site
-- Dashboard link from the main site navbar
+- Nothing removed from other pages
 
 ## Implementation Plan
-1. Update `App.tsx` to split into `UserApp` (main domain) and `AdminApp` (admin subdomain)
-2. Create `AdminApp` component with admin-only login + dashboard
-3. Create `AdminLoginPage` that only allows admin email to register/login
-4. Update `Navbar` to remove Login and Dashboard links (user site has no auth)
-5. Create `AdminNavbar` for the admin subdomain
+1. Create `src/frontend/src/utils/amadeus.ts` — helper to fetch Amadeus OAuth token and call flight-offers API, returning normalized flight data
+2. Update SearchPage to:
+   - Step 1: search form -> calls Amadeus API on submit
+   - Step 2: show results as flight cards
+   - Step 3: selected flight -> show contact form -> submit inquiry to WhatsApp + backend
+3. Use IATA codes from AirportCombobox values for the API call
+4. Show proper loading, error, and empty states
