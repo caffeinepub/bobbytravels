@@ -120,6 +120,22 @@ export function ToursPage() {
         specialRequests: form.specialRequests || undefined,
       });
       const msg = `🌍 Tour Enquiry from BobbyTravels%0A%0AName: ${form.customerName}%0APhone: ${form.customerPhone}%0APackage: ${form.tourPackage}%0ADate: ${form.travelDate}%0AAdults: ${form.adults}, Children: ${form.children}%0ABudget: ${form.budget || "Flexible"}%0ARequests: ${form.specialRequests || "None"}`;
+      fetch("https://hooks.zapier.com/hooks/catch/26772363/ux8vj5v/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "tour",
+          customerName: form.customerName,
+          customerPhone: form.customerPhone,
+          customerEmail: form.customerEmail || "",
+          tourPackage: form.tourPackage,
+          travelDate: form.travelDate,
+          adultsCount: form.adults,
+          childrenCount: form.children,
+          budget: form.budget || "",
+          specialRequests: form.specialRequests || "",
+        }),
+      }).catch(() => {});
       window.open(`https://wa.me/919815480825?text=${msg}`, "_blank");
       setSubmitted(true);
     } catch {

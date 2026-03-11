@@ -243,6 +243,31 @@ export function SearchPage({ onNavigate }: SearchPageProps = {}) {
       }
     }
 
+    // Zapier webhook (fire-and-forget)
+    fetch("https://hooks.zapier.com/hooks/catch/26772363/ux8vj5v/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: "flight",
+        customerName: contact.name,
+        customerPhone: contact.phone,
+        customerEmail: contact.email || "",
+        origin: search.origin,
+        destination: search.destination,
+        departureDate: search.departureDate,
+        returnDate:
+          search.tripType === "returnTrip" && search.returnDate
+            ? search.returnDate
+            : "",
+        tripType: search.tripType,
+        adultsCount: search.adults,
+        childrenCount: search.children,
+        infantsCount: search.infants,
+        cabinClass: search.cabinClass,
+        specialRequests: contact.specialRequests || "",
+      }),
+    }).catch(() => {});
+
     // Open WhatsApp
     const waMsg = [
       "✈️ *Flight Enquiry — BobbyTravels*",

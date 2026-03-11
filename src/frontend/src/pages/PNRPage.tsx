@@ -75,6 +75,20 @@ export function PNRPage() {
         notes: form.notes || undefined,
       });
       const msg = `📋 PNR Enquiry from BobbyTravels%0A%0AName: ${form.customerName}%0APhone: ${form.customerPhone}%0APNR: ${form.pnrNumber.toUpperCase()}%0AAirline: ${form.airline}%0ATravel Date: ${form.travelDate || "N/A"}%0ANotes: ${form.notes || "None"}`;
+      fetch("https://hooks.zapier.com/hooks/catch/26772363/ux8vj5v/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "pnr",
+          customerName: form.customerName,
+          customerPhone: form.customerPhone,
+          customerEmail: form.customerEmail || "",
+          pnrNumber: form.pnrNumber.toUpperCase(),
+          airline: form.airline,
+          travelDate: form.travelDate || "",
+          notes: form.notes || "",
+        }),
+      }).catch(() => {});
       window.open(`https://wa.me/919815480825?text=${msg}`, "_blank");
       setSubmitted(true);
     } catch {

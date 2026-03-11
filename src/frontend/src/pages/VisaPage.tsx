@@ -69,6 +69,21 @@ export function VisaPage() {
       });
       // WhatsApp notification
       const msg = `🇮🇳 Visa Enquiry from BobbyTravels%0A%0AName: ${form.customerName}%0APhone: ${form.customerPhone}%0AEmail: ${form.customerEmail || "N/A"}%0ACountry: ${form.country}%0AVisa Type: ${form.visaType}%0ATravel Date: ${form.travelDate}%0APassport: ${form.passportNumber || "N/A"}%0ANotes: ${form.specialNotes || "None"}`;
+      fetch("https://hooks.zapier.com/hooks/catch/26772363/ux8vj5v/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "visa",
+          customerName: form.customerName,
+          customerPhone: form.customerPhone,
+          customerEmail: form.customerEmail || "",
+          country: form.country,
+          visaType: form.visaType,
+          travelDate: form.travelDate,
+          passportNumber: form.passportNumber || "",
+          specialNotes: form.specialNotes || "",
+        }),
+      }).catch(() => {});
       window.open(`https://wa.me/919815480825?text=${msg}`, "_blank");
       setSubmitted(true);
     } catch {

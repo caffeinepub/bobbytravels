@@ -448,7 +448,7 @@ actor {
   // Amadeus API - fetch flight info by PNR
   public shared ({ caller }) func getAmadeusFlightInfo(pnrNumber : Text, airline : Text) : async Text {
     // Step 1: Get OAuth token
-    let tokenBody = "grant_type=client_credentials&client_id=IM89moTdjNpalJEL5SkCNis2C9vA3Pix&client_secret=IM89moTdjNpalJEL5SkCNis2C9vA3Pix";
+    let tokenBody = "grant_type=client_credentials&client_id=IM89moTdjNpalJEL5SkCNis2C9vA3Pix&client_secret=nTy5ERnHp8kAUedf";
     let tokenHeaders : [Outcall.Header] = [{
       name = "Content-Type";
       value = "application/x-www-form-urlencoded";

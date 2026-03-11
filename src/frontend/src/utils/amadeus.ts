@@ -1,7 +1,7 @@
 // Amadeus Test API integration
 const AMADEUS_API_BASE = "https://test.api.amadeus.com";
 const CLIENT_ID = "IM89moTdjNpalJEL5SkCNis2C9vA3Pix";
-const CLIENT_SECRET = "IM89moTdjNpalJEL5SkCNis2C9vA3Pix";
+const CLIENT_SECRET = "nTy5ERnHp8kAUedf";
 
 export interface FlightSegment {
   departure: { iataCode: string; at: string };
