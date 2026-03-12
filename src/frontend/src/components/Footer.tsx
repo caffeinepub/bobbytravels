@@ -1,134 +1,159 @@
-import { Globe, Mail, MessageCircle, Phone, Plane } from "lucide-react";
+import { Mail, MapPin, Phone, Plane } from "lucide-react";
+import type { UserPage } from "../pages/UserApp";
 
-export function Footer() {
+interface FooterProps {
+  onNavigate?: (page: UserPage) => void;
+}
+
+export function Footer({ onNavigate }: FooterProps) {
   const year = new Date().getFullYear();
-  const hostname = encodeURIComponent(
+  const hostname =
     typeof window !== "undefined"
       ? window.location.hostname
-      : "bobbytravels.online",
-  );
+      : "bobbytravels.online";
+
+  const nav = (page: UserPage) => {
+    onNavigate?.(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <footer className="bg-navy-dark border-t border-white/10 text-white/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+    <footer className="bg-navy-dark border-t border-white/10 pt-12 pb-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-white/10">
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl gold-gradient flex items-center justify-center">
-                <Plane className="w-5 h-5 text-navy-dark" />
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center">
+                <Plane className="w-4 h-4 text-navy-dark" />
               </div>
-              <span className="font-display font-bold text-white text-lg">
+              <span className="font-bold text-white font-display">
                 Bobby<span className="text-gold">Travels</span>
               </span>
             </div>
-            <p className="text-sm leading-relaxed text-white/60 mb-4">
-              Your trusted travel partner for the best flight deals. Direct
-              connections, unbeatable prices, personal service.
+            <p className="text-white/50 text-sm leading-relaxed mb-4">
+              Your trusted travel partner for flights, visa, and tour packages
+              worldwide.
             </p>
-            <div className="flex items-center gap-2 text-sm">
-              <Globe className="w-4 h-4 text-gold flex-shrink-0" />
+            <div className="space-y-2">
               <a
-                href="https://bobbytravels.online"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-gold transition-colors"
+                href="tel:+919815480825"
+                className="flex items-center gap-2 text-white/50 text-sm hover:text-gold transition-colors"
               >
-                bobbytravels.online
+                <Phone className="w-3.5 h-3.5" /> +91 9815480825
               </a>
+              <a
+                href="mailto:info@bobbytravels.online"
+                className="flex items-center gap-2 text-white/50 text-sm hover:text-gold transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5" /> info@bobbytravels.online
+              </a>
+              <span className="flex items-center gap-2 text-white/50 text-sm">
+                <MapPin className="w-3.5 h-3.5" /> India
+              </span>
             </div>
           </div>
 
-          {/* Contact */}
+          {/* Services */}
           <div>
-            <h4 className="font-display font-semibold text-white mb-4 text-sm uppercase tracking-widest">
-              Contact Us
-            </h4>
-            <ul className="space-y-3 text-sm">
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">
+              Services
+            </h3>
+            <ul className="space-y-2">
+              {(
+                [
+                  ["Book Flight", "bookFlight"],
+                  ["Visa Services", "visa"],
+                  ["Tour Packages", "tours"],
+                  ["PNR Check", "pnr"],
+                  ["Airline Helpline", "airlineHelpline"],
+                ] as [string, UserPage][]
+              ).map(([label, page]) => (
+                <li key={page}>
+                  <button
+                    type="button"
+                    onClick={() => nav(page)}
+                    className="text-white/50 text-sm hover:text-gold transition-colors"
+                  >
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">
+              Support
+            </h3>
+            <ul className="space-y-2">
               <li>
-                <a
-                  href="tel:9815480825"
-                  className="flex items-center gap-2.5 hover:text-gold transition-colors"
+                <button
+                  type="button"
+                  onClick={() => nav("contact")}
+                  className="text-white/50 text-sm hover:text-gold transition-colors"
                 >
-                  <Phone className="w-4 h-4 text-gold flex-shrink-0" />
-                  +91 9815480825
-                </a>
+                  Contact Us
+                </button>
               </li>
               <li>
                 <a
                   href="https://wa.me/919815480825"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 hover:text-gold transition-colors"
+                  className="text-white/50 text-sm hover:text-gold transition-colors"
                 >
-                  <MessageCircle className="w-4 h-4 text-gold flex-shrink-0" />
-                  WhatsApp Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="mailto:info@bobbytravels.online"
-                  className="flex items-center gap-2.5 hover:text-gold transition-colors"
-                >
-                  <Mail className="w-4 h-4 text-gold flex-shrink-0" />
-                  info@bobbytravels.online
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Emails */}
-          <div>
-            <h4 className="font-display font-semibold text-white mb-4 text-sm uppercase tracking-widest">
-              Email Departments
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li>
-                <a
-                  href="mailto:info@bobbytravels.online"
-                  className="flex flex-col hover:text-gold transition-colors"
-                >
-                  <span className="text-gold text-xs font-ui uppercase tracking-wide">
-                    General Enquiries
-                  </span>
-                  <span>info@bobbytravels.online</span>
+                  WhatsApp Support
                 </a>
               </li>
               <li>
                 <a
                   href="mailto:book@bobbytravels.online"
-                  className="flex flex-col hover:text-gold transition-colors"
+                  className="text-white/50 text-sm hover:text-gold transition-colors"
                 >
-                  <span className="text-gold text-xs font-ui uppercase tracking-wide">
-                    Booking & Reservations
-                  </span>
-                  <span>book@bobbytravels.online</span>
+                  book@bobbytravels.online
                 </a>
               </li>
               <li>
                 <a
                   href="mailto:support@bobbytravels.online"
-                  className="flex flex-col hover:text-gold transition-colors"
+                  className="text-white/50 text-sm hover:text-gold transition-colors"
                 >
-                  <span className="text-gold text-xs font-ui uppercase tracking-wide">
-                    Customer Support
-                  </span>
-                  <span>support@bobbytravels.online</span>
+                  support@bobbytravels.online
                 </a>
               </li>
             </ul>
           </div>
+
+          {/* Pay */}
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">
+              Payment
+            </h3>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+              <p className="text-white/60 text-xs mb-1">Google Pay / UPI</p>
+              <p className="text-gold font-mono text-sm font-medium">
+                9878030007-1@okbizaxis
+              </p>
+            </div>
+            <p className="text-white/40 text-xs mt-3">
+              Secure payments accepted via UPI, NEFT, IMPS.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/40">
-          <p>© {year} BobbyTravels. All rights reserved.</p>
-          <p>
-            Built with love using{" "}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-white/30 text-xs">
+            © {year} BobbyTravels. All rights reserved.
+          </p>
+          <p className="text-white/30 text-xs">
+            Built with ❤️ using{" "}
             <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${hostname}`}
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(hostname)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-gold transition-colors underline underline-offset-2"
+              className="hover:text-gold transition-colors"
             >
               caffeine.ai
             </a>

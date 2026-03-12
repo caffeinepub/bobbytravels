@@ -1,428 +1,398 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Loader2, MessageCircle, Plane } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { useActor } from "../hooks/useActor";
-import { useLoginUser, useRegisterUser } from "../hooks/useQueries";
-import type { UserPage as Page } from "./UserApp";
+import { sha256 } from "../utils/crypto";
+import type { UserPage } from "./UserApp";
 
-function hashPassword(password: string): string {
-  return btoa(password);
-}
+const ADMIN_EMAIL = "adityabholath@gmail.com";
+const isAdminSubdomain =
+  window.location.hostname.startsWith("admin.") ||
+  window.location.hostname === "admin.bobbytravels.online";
 
-interface LoginPageProps {
-  onNavigate: (page: Page) => void;
-}
-
-export function LoginPage({ onNavigate }: LoginPageProps) {
-  const { login } = useAuth();
+export function LoginPage({
+  onNavigate,
+}: { onNavigate: (page: UserPage) => void }) {
   const { actor } = useActor();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const a = actor as unknown as Record<string, any>;
+  const { login } = useAuth();
 
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState("login");
+  const [tab, setTab] = useState("login");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [forgotMode, setForgotMode] = useState(false);
+  const [prefilledEmail, setPrefilledEmail] = useState("");
 
-  // Login state
+  // Login form
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
-  // Register state
+  // Register form
   const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regConfirm, setRegConfirm] = useState("");
-  const [regError, setRegError] = useState("");
-  const [emailExists, setEmailExists] = useState(false);
-  const [existingEmail, setExistingEmail] = useState("");
-
-  const loginMutation = useLoginUser();
-  const registerMutation = useRegisterUser();
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError("");
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Please enter email and password.");
+    if (!actor) {
+      toast.error("Connecting to server…");
       return;
     }
+    setLoading(true);
+    setError("");
     try {
-      const token = await loginMutation.mutateAsync({
-        email: loginEmail.trim().toLowerCase(),
-        passwordHash: hashPassword(loginPassword),
-      });
-      const user = await a.validateSession(token);
+      const hash = await sha256(loginPassword);
+      const token = await actor.loginUser(
+        loginEmail.trim().toLowerCase(),
+        hash,
+      );
+      if (!token) {
+        setError("Invalid email or password.");
+        return;
+      }
+      const user = await actor.validateSession(token);
       if (user) {
         login(token, user);
         toast.success(`Welcome back, ${user.name}!`);
         onNavigate("home");
+      } else {
+        setError("Login failed. Please try again.");
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setLoginError(
-        msg.includes("Invalid")
-          ? "Invalid email or password."
-          : "Login failed. Please try again.",
-      );
+    } catch {
+      setError("Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRegError("");
-    setEmailExists(false);
-    setExistingEmail("");
-    if (!regName || !regEmail || !regPassword) {
-      setRegError("Please fill in all required fields.");
+    if (!actor) {
+      toast.error("Connecting to server…");
       return;
     }
-    if (regPassword !== regConfirm) {
-      setRegError("Passwords do not match.");
+    if (isAdminSubdomain && regEmail.trim().toLowerCase() !== ADMIN_EMAIL) {
+      setError("Only the admin email can register on this subdomain.");
       return;
     }
-    if (regPassword.length < 6) {
-      setRegError("Password must be at least 6 characters.");
-      return;
-    }
+    setLoading(true);
+    setError("");
+    setDuplicateEmail(false);
     try {
-      const token = await registerMutation.mutateAsync({
-        email: regEmail.trim().toLowerCase(),
-        passwordHash: hashPassword(regPassword),
-        name: regName.trim(),
-        phone: regPhone.trim() || null,
-      });
-      const user = await a.validateSession(token);
+      const hash = await sha256(regPassword);
+      const token = await actor.registerUser(
+        regEmail.trim().toLowerCase(),
+        hash,
+        regName.trim(),
+        regPhone.trim() || null,
+      );
+      if (!token) {
+        setError("Registration failed. Please try again.");
+        return;
+      }
+      const user = await actor.validateSession(token);
       if (user) {
         login(token, user);
-        toast.success(`Welcome, ${user.name}! Account created successfully.`);
+        toast.success("Account created! Welcome to BobbyTravels.");
         onNavigate("home");
+      } else {
+        setError("Registration failed.");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("already exists")) {
-        setEmailExists(true);
-        setExistingEmail(regEmail.trim().toLowerCase());
+      if (
+        msg.toLowerCase().includes("already") ||
+        msg.toLowerCase().includes("exist")
+      ) {
+        setDuplicateEmail(true);
       } else {
-        setRegError("Registration failed. Please try again.");
+        setError("Registration failed. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const switchToLoginWithEmail = () => {
-    setLoginEmail(existingEmail);
-    setLoginPassword("");
-    setLoginError("");
-    setEmailExists(false);
-    setRegError("");
-    setActiveTab("login");
-  };
-
-  const forgotPasswordWhatsApp = () => {
-    const msg = encodeURIComponent(
-      `Hi, I forgot my password for my BobbyTravels account. My registered email is: ${loginEmail}`,
+  if (forgotMode) {
+    return (
+      <main className="min-h-screen bg-background pt-24 pb-16 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8">
+          <h2 className="text-xl font-bold text-foreground mb-2 font-display">
+            Forgot Password
+          </h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            We'll connect you with our support team on WhatsApp to reset your
+            password.
+          </p>
+          <a
+            href={`https://wa.me/919815480825?text=${encodeURIComponent(`Hi, I need help resetting my password for email: ${prefilledEmail}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full py-3 text-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors"
+          >
+            Contact Support on WhatsApp
+          </a>
+          <button
+            type="button"
+            onClick={() => setForgotMode(false)}
+            className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground text-center"
+          >
+            ← Back to login
+          </button>
+        </div>
+      </main>
     );
-    window.open(`https://wa.me/919815480825?text=${msg}`, "_blank");
-  };
+  }
 
   return (
-    <main
-      data-ocid="login.page"
-      className="min-h-screen bg-gradient-to-br from-navy-dark to-navy pt-24 pb-16 flex items-center justify-center px-4"
-    >
+    <main className="min-h-screen bg-background pt-24 pb-16 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Plane className="w-8 h-8 text-navy-dark" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">
-            Bobby<span className="text-gold">Travels</span>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-foreground font-display">
+            Welcome to BobbyTravels
           </h1>
-          <p className="text-white/60 mt-1 text-sm">Sign in to your account</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Login or create an account to manage your bookings
+          </p>
         </div>
-
-        <Card className="border-0 shadow-2xl rounded-2xl overflow-hidden">
-          <CardContent className="p-0">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList
+              className="w-full rounded-none border-b border-border h-12 bg-muted/50"
+              data-ocid="auth.tab"
             >
-              <TabsList
-                ref={tabsRef as React.RefObject<HTMLDivElement>}
-                data-ocid="login.tab"
-                className="w-full rounded-none h-12 bg-muted/50"
+              <TabsTrigger
+                value="login"
+                data-ocid="auth.login.tab"
+                className="flex-1 h-10 gap-1.5"
               >
-                <TabsTrigger
-                  value="login"
-                  className="flex-1 rounded-none"
-                  data-ocid="login.login.tab"
-                >
-                  Login
-                </TabsTrigger>
-                <TabsTrigger
-                  value="register"
-                  className="flex-1 rounded-none"
-                  data-ocid="login.register.tab"
-                >
-                  Register
-                </TabsTrigger>
-              </TabsList>
+                <LogIn className="w-4 h-4" /> Login
+              </TabsTrigger>
+              <TabsTrigger
+                value="register"
+                data-ocid="auth.register.tab"
+                className="flex-1 h-10 gap-1.5"
+              >
+                <UserPlus className="w-4 h-4" /> Register
+              </TabsTrigger>
+            </TabsList>
 
-              {/* LOGIN TAB */}
-              <TabsContent value="login" className="p-6 space-y-4 mt-0">
-                {!showForgotPassword ? (
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                      <Label htmlFor="login-email">Email Address</Label>
-                      <Input
-                        id="login-email"
-                        data-ocid="login.email.input"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="login-password">Password</Label>
-                        <button
-                          type="button"
-                          data-ocid="login.forgot_password.button"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-gold hover:underline focus:outline-none"
-                        >
-                          Forgot password?
-                        </button>
-                      </div>
-                      <Input
-                        id="login-password"
-                        data-ocid="login.password.input"
-                        type="password"
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    {loginError && (
-                      <div
-                        data-ocid="login.error_state"
-                        className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"
-                      >
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        {loginError}
-                      </div>
-                    )}
-                    <Button
-                      type="submit"
-                      data-ocid="login.submit_button"
-                      className="w-full bg-gold hover:bg-gold/90 text-navy-dark font-semibold"
-                      disabled={loginMutation.isPending}
-                    >
-                      {loginMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Signing in...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
-                ) : (
-                  <div
-                    data-ocid="login.forgot_password.panel"
-                    className="space-y-4"
-                  >
-                    <div className="text-center">
-                      <div className="w-12 h-12 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <MessageCircle className="w-6 h-6 text-gold" />
-                      </div>
-                      <h3 className="font-semibold text-base">
-                        Forgot your password?
-                      </h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        No worries! Contact our support team on WhatsApp and
-                        we'll help you reset your password.
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="forgot-email">
-                        Your registered email (optional)
-                      </Label>
-                      <Input
-                        id="forgot-email"
-                        data-ocid="login.forgot_email.input"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      data-ocid="login.forgot_whatsapp.button"
-                      onClick={forgotPasswordWhatsApp}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Contact Support on WhatsApp
-                    </Button>
+            <TabsContent value="login" className="p-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label htmlFor="login-email" className="text-sm">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="login-email"
+                    data-ocid="auth.email.input"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label htmlFor="login-pass" className="text-sm">
+                      Password
+                    </Label>
                     <button
                       type="button"
-                      data-ocid="login.back_to_login.button"
-                      onClick={() => setShowForgotPassword(false)}
-                      className="w-full text-sm text-muted-foreground hover:text-foreground text-center focus:outline-none"
+                      onClick={() => {
+                        setForgotMode(true);
+                        setPrefilledEmail(loginEmail);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-gold transition-colors"
                     >
-                      &larr; Back to login
+                      Forgot password?
                     </button>
                   </div>
+                  <div className="relative">
+                    <Input
+                      id="login-pass"
+                      data-ocid="auth.password.input"
+                      type={showPass ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPass ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {error && (
+                  <Alert variant="destructive" data-ocid="auth.error_state">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
-              </TabsContent>
+                <Button
+                  type="submit"
+                  data-ocid="auth.login.submit_button"
+                  disabled={loading}
+                  className="w-full bg-gold hover:bg-gold/90 text-navy-dark font-semibold gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogIn className="w-4 h-4" />
+                  )}
+                  {loading ? "Logging in…" : "Login"}
+                </Button>
+              </form>
+            </TabsContent>
 
-              {/* REGISTER TAB */}
-              <TabsContent value="register" className="p-6 space-y-4 mt-0">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div>
-                    <Label htmlFor="reg-name">
-                      Full Name <span className="text-destructive">*</span>
-                    </Label>
+            <TabsContent value="register" className="p-6">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <Label htmlFor="reg-name" className="text-sm">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="reg-name"
+                    data-ocid="auth.name.input"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Your full name"
+                    required
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reg-phone" className="text-sm">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="reg-phone"
+                    data-ocid="auth.phone.input"
+                    type="tel"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    placeholder="+91 98154 80825"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reg-email" className="text-sm">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="reg-email"
+                    data-ocid="auth.reg.email.input"
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => {
+                      setRegEmail(e.target.value);
+                      setDuplicateEmail(false);
+                    }}
+                    placeholder="you@example.com"
+                    required
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reg-pass" className="text-sm">
+                    Password
+                  </Label>
+                  <div className="relative mt-1.5">
                     <Input
-                      id="reg-name"
-                      data-ocid="login.name.input"
-                      placeholder="Your full name"
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reg-email">
-                      Email Address <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="reg-email"
-                      data-ocid="login.reg_email.input"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={regEmail}
-                      onChange={(e) => {
-                        setRegEmail(e.target.value);
-                        setEmailExists(false);
-                      }}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reg-phone">Phone Number</Label>
-                    <Input
-                      id="reg-phone"
-                      data-ocid="login.phone.input"
-                      type="tel"
-                      placeholder="+91 9876543210"
-                      value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reg-password">
-                      Password <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="reg-password"
-                      data-ocid="login.reg_password.input"
-                      type="password"
-                      placeholder="Min 6 characters"
+                      id="reg-pass"
+                      data-ocid="auth.reg.password.input"
+                      type={showPass ? "text" : "password"}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="mt-1"
+                      placeholder="Min. 6 characters"
+                      minLength={6}
+                      required
+                      className="pr-10"
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="reg-confirm">
-                      Confirm Password{" "}
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="reg-confirm"
-                      data-ocid="login.confirm_password.input"
-                      type="password"
-                      placeholder="Repeat password"
-                      value={regConfirm}
-                      onChange={(e) => setRegConfirm(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  {/* Email already exists banner */}
-                  {emailExists && (
-                    <div
-                      data-ocid="login.email_exists.error_state"
-                      className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 space-y-2"
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-800 font-medium">
-                          An account with this email already exists.
-                        </p>
-                      </div>
-                      <p className="text-xs text-amber-700 pl-6">
-                        Please login with your existing account, or use a
-                        different email to register.
-                      </p>
-                      <Button
+                      {showPass ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {duplicateEmail && (
+                  <Alert
+                    className="border-amber-500/50 bg-amber-500/10"
+                    data-ocid="auth.duplicate.error_state"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <AlertDescription className="text-amber-400">
+                      This email is already registered.{" "}
+                      <button
                         type="button"
-                        data-ocid="login.switch_to_login.button"
-                        onClick={switchToLoginWithEmail}
-                        size="sm"
-                        className="ml-6 bg-gold hover:bg-gold/90 text-navy-dark font-semibold"
+                        onClick={() => {
+                          setTab("login");
+                          setLoginEmail(regEmail);
+                          setDuplicateEmail(false);
+                        }}
+                        className="underline font-medium"
                       >
                         Login instead
-                      </Button>
-                    </div>
+                      </button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {error && !duplicateEmail && (
+                  <Alert variant="destructive" data-ocid="auth.error_state">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <Button
+                  type="submit"
+                  data-ocid="auth.register.submit_button"
+                  disabled={loading}
+                  className="w-full bg-gold hover:bg-gold/90 text-navy-dark font-semibold gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
                   )}
-
-                  {regError && (
-                    <div
-                      data-ocid="login.reg_error_state"
-                      className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 rounded-lg px-3 py-2"
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      {regError}
-                    </div>
-                  )}
-                  <Button
-                    type="submit"
-                    data-ocid="login.register.submit_button"
-                    className="w-full bg-gold hover:bg-gold/90 text-navy-dark font-semibold"
-                    disabled={registerMutation.isPending}
-                  >
-                    {registerMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                  {loading ? "Creating account…" : "Create Account"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </main>
   );

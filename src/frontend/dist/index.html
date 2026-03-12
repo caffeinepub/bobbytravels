@@ -1,0 +1,53 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>BobbyTravels – Best Flight Deals</title>
+    <meta name="description" content="Book flights and get exclusive deals directly on WhatsApp from BobbyTravels." />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a1628" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Apple PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BobbyTravels" />
+    <link rel="apple-touch-icon" href="/assets/generated/bobbytravels-icon.dim_512x512.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/assets/generated/bobbytravels-icon.dim_512x512.png" />
+
+    <!-- Register Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-DvEQE0oL.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CDCfHE62.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  <!-- Zoho SalesIQ Live Chat -->
+  <script type="text/javascript" id="zsiqchat">
+    var $zoho = $zoho || {};
+    $zoho.salesiq = $zoho.salesiq || {
+      widgetcode: "siq8f9556983b0ac16c59c4070c5b3c3c1c30b81d5fde0367f801d51bfda86b175a",
+      values: {},
+      ready: function(){}
+    };
+    var d = document;
+    var s = d.createElement("script");
+    s.type = "text/javascript";
+    s.id = "zsiqscript";
+    s.defer = true;
+    s.src = "https://salesiq.zoho.in/widget";
+    var t = d.getElementsByTagName("script")[0];
+    t.parentNode.insertBefore(s, t);
+  </script>
+  </body>
+</html>

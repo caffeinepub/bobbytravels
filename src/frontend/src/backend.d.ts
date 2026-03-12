@@ -39,6 +39,32 @@ export interface FlightEnquiryInput {
     customerEmail?: string;
     returnDate?: string;
 }
+export interface TransformationOutput {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface UserBooking {
+    customerName: string;
+    destination: string;
+    cabinClass: string;
+    paymentStatus: string;
+    bookingId: bigint;
+    tripType: string;
+    infantsCount: bigint;
+    adultsCount: bigint;
+    customerPhone: string;
+    departureDate: string;
+    pnrNumber?: string;
+    userId: bigint;
+    createdAt: bigint;
+    origin: string;
+    bookingStatus: string;
+    amadeusFlightInfo?: string;
+    childrenCount: bigint;
+    customerEmail: string;
+    returnDate?: string;
+}
 export interface User {
     id: bigint;
     name: string;
@@ -59,10 +85,34 @@ export interface VisaEnquiry {
     customerEmail?: string;
     specialNotes?: string;
 }
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface UserBookingInput {
+    customerName: string;
+    destination: string;
+    cabinClass: string;
+    tripType: string;
+    infantsCount: bigint;
+    adultsCount: bigint;
+    customerPhone: string;
+    departureDate: string;
+    origin: string;
+    childrenCount: bigint;
+    customerEmail: string;
+    returnDate?: string;
+}
 export interface AdminStats {
     totalPNREnquiries: bigint;
     totalTourEnquiries: bigint;
     totalFlightEnquiries: bigint;
+    totalBookings: bigint;
     totalVisaEnquiries: bigint;
     totalUsers: bigint;
 }
@@ -86,6 +136,10 @@ export interface VisaEnquiryInput {
     passportNumber?: string;
     customerEmail?: string;
     specialNotes?: string;
+}
+export interface TransformationInput {
+    context: Uint8Array;
+    response: http_request_result;
 }
 export interface TourEnquiry {
     id: bigint;
@@ -138,22 +192,30 @@ export enum UserRole {
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getAdminStats(token: SessionToken): Promise<AdminStats>;
+    getAllBookings(token: SessionToken): Promise<Array<UserBooking>>;
     getAllFlightEnquiries(token: SessionToken): Promise<Array<[bigint, FlightEnquiry]>>;
     getAllPNREnquiries(token: SessionToken): Promise<Array<[bigint, PNREnquiry]>>;
     getAllTourEnquiries(token: SessionToken): Promise<Array<[bigint, TourEnquiry]>>;
     getAllUsers(token: SessionToken): Promise<Array<[bigint, User]>>;
     getAllVisaEnquiries(token: SessionToken): Promise<Array<[bigint, VisaEnquiry]>>;
+    getAmadeusFlightInfo(token: SessionToken, pnrNumber: string, airline: string): Promise<string>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getUserBookings(token: SessionToken): Promise<Array<UserBooking>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     loginUser(email: string, passwordHash: string): Promise<SessionToken>;
     registerUser(email: string, passwordHash: string, name: string, phone: string | null): Promise<SessionToken>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    saveUserBooking(token: SessionToken, input: UserBookingInput): Promise<bigint>;
     submitFlightEnquiry(input: FlightEnquiryInput): Promise<bigint>;
     submitPNREnquiry(input: PNREnquiryInput): Promise<bigint>;
     submitTourEnquiry(input: TourEnquiryInput): Promise<bigint>;
     submitVisaEnquiry(input: VisaEnquiryInput): Promise<bigint>;
+    transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateBookingPNR(token: SessionToken, bookingId: bigint, pnrNumber: string): Promise<void>;
+    updateBookingPaymentStatus(token: SessionToken, bookingId: bigint, paymentStatus: string): Promise<void>;
+    updateBookingStatus(token: SessionToken, bookingId: bigint, bookingStatus: string): Promise<void>;
     updateFlightEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;
     updateTourEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;
     updateVisaEnquiryStatus(token: SessionToken, id: bigint, status: string): Promise<void>;

@@ -36,7 +36,6 @@ actor {
     phone : ?Text;
     email : Text;
   };
-
   public type SessionToken = Text;
 
   let users = Map.empty<Nat, User>();
@@ -349,6 +348,18 @@ actor {
     };
   };
 
+  func requireUserByToken(token : SessionToken) : Principal {
+    switch (getPrincipalFromToken(token)) {
+      case (?userPrincipal) {
+        if (not AccessControl.hasPermission(accessControlState, userPrincipal, #user)) {
+          Runtime.trap("Unauthorized: Users only");
+        };
+        userPrincipal;
+      };
+      case (null) { Runtime.trap("Invalid session token") };
+    };
+  };
+
   public query ({ caller }) func getAllUsers(token : SessionToken) : async [(Nat, User)] {
     requireAdminByToken(token);
     users.toArray();
@@ -357,6 +368,7 @@ actor {
   // ---- User Bookings ----
 
   public shared ({ caller }) func saveUserBooking(token : SessionToken, input : UserBookingInput) : async Nat {
+    let _ = requireUserByToken(token);
     let userId = switch (sessionToUserId.get(token)) {
       case (?id) { id };
       case (null) { Runtime.trap("Invalid session token") };
@@ -393,6 +405,7 @@ actor {
   };
 
   public query ({ caller }) func getUserBookings(token : SessionToken) : async [UserBooking] {
+    let _ = requireUserByToken(token);
     let userId = switch (sessionToUserId.get(token)) {
       case (?id) { id };
       case (null) { Runtime.trap("Invalid session token") };
@@ -445,8 +458,9 @@ actor {
     result.toArray();
   };
 
-  // Amadeus API - fetch flight info by PNR
-  public shared ({ caller }) func getAmadeusFlightInfo(pnrNumber : Text, airline : Text) : async Text {
+  // Amadeus API - fetch flight info by PNR (ADMIN ONLY - contains sensitive API credentials)
+  public shared ({ caller }) func getAmadeusFlightInfo(token : SessionToken, pnrNumber : Text, airline : Text) : async Text {
+    requireAdminByToken(token);
     // Step 1: Get OAuth token
     let tokenBody = "grant_type=client_credentials&client_id=IM89moTdjNpalJEL5SkCNis2C9vA3Pix&client_secret=nTy5ERnHp8kAUedf";
     let tokenHeaders : [Outcall.Header] = [{
@@ -463,7 +477,7 @@ actor {
     tokenResponse;
   };
 
-  // Flight Enquiries
+  // Flight Enquiries - public submission (guests can submit)
   public shared ({ caller }) func submitFlightEnquiry(input : FlightEnquiryInput) : async Nat {
     let enquiry : FlightEnquiry = {
       id = nextFlightEnquiryId;
@@ -502,7 +516,7 @@ actor {
     };
   };
 
-  // Visa Enquiries
+  // Visa Enquiries - public submission (guests can submit)
   public shared ({ caller }) func submitVisaEnquiry(input : VisaEnquiryInput) : async Nat {
     let enquiry : VisaEnquiry = {
       id = nextVisaEnquiryId;
@@ -536,7 +550,7 @@ actor {
     };
   };
 
-  // Tour Enquiries
+  // Tour Enquiries - public submission (guests can submit)
   public shared ({ caller }) func submitTourEnquiry(input : TourEnquiryInput) : async Nat {
     let enquiry : TourEnquiry = {
       id = nextTourEnquiryId;
@@ -571,7 +585,7 @@ actor {
     };
   };
 
-  // PNR Enquiries
+  // PNR Enquiries - public submission (guests can submit)
   public shared ({ caller }) func submitPNREnquiry(input : PNREnquiryInput) : async Nat {
     let enquiry : PNREnquiry = {
       id = nextPNREnquiryId;

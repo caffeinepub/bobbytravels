@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { BookOpen, LogIn, LogOut, Menu, Plane, X } from "lucide-react";
+import { BookOpen, LogIn, LogOut, Menu, Phone, Plane, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import type { UserPage } from "../pages/UserApp";
@@ -11,6 +11,16 @@ interface NavbarProps {
   hideAuth?: boolean;
 }
 
+const NAV_LINKS: { label: string; page: UserPage; ocid: string }[] = [
+  { label: "Home", page: "home", ocid: "nav.home.link" },
+  { label: "Book Flight", page: "bookFlight", ocid: "nav.bookflight.link" },
+  { label: "Visa", page: "visa", ocid: "nav.visa.link" },
+  { label: "Tours", page: "tours", ocid: "nav.tours.link" },
+  { label: "PNR Check", page: "pnr", ocid: "nav.pnr.link" },
+  { label: "Helpline", page: "airlineHelpline", ocid: "nav.helpline.link" },
+  { label: "Contact", page: "contact", ocid: "nav.contact.link" },
+];
+
 export function Navbar({
   currentPage,
   onNavigate,
@@ -19,15 +29,6 @@ export function Navbar({
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { currentUser, logout } = useAuth();
-
-  const navLinks: { label: string; page: UserPage; ocid: string }[] = [
-    { label: "Home", page: "home", ocid: "nav.home.link" },
-    { label: "Book Flight", page: "search", ocid: "nav.search.link" },
-    { label: "Visa", page: "visa", ocid: "nav.visa.link" },
-    { label: "Tours", page: "tours", ocid: "nav.tours.link" },
-    { label: "PNR Check", page: "pnr", ocid: "nav.pnr.link" },
-    { label: "Contact", page: "contact", ocid: "nav.contact.link" },
-  ];
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -38,12 +39,10 @@ export function Navbar({
   const handleNav = (page: UserPage) => {
     onNavigate(page);
     setMobileOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleLogout = () => {
     logout();
-    setMobileOpen(false);
     handleNav("home");
   };
 
@@ -51,12 +50,13 @@ export function Navbar({
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-navy-dark/95 backdrop-blur-md shadow-lg"
+          ? "bg-navy-dark/95 backdrop-blur-md shadow-nav"
           : "bg-navy-dark/90 backdrop-blur-sm"
       }`}
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <button
             type="button"
             onClick={() => handleNav("home")}
@@ -67,7 +67,7 @@ export function Navbar({
               <Plane className="w-5 h-5 text-navy-dark" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-white text-base tracking-wide">
+              <span className="font-bold text-white text-base tracking-wide font-display">
                 Bobby<span className="text-gold">Travels</span>
               </span>
               <span className="text-[10px] text-white/50 tracking-widest uppercase">
@@ -76,8 +76,9 @@ export function Navbar({
             </div>
           </button>
 
-          <div className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
+          {/* Desktop nav */}
+          <div className="hidden lg:flex items-center gap-0.5">
+            {NAV_LINKS.map((link) => (
               <button
                 type="button"
                 key={link.page}
@@ -94,12 +95,12 @@ export function Navbar({
             ))}
             {!hideAuth &&
               (currentUser ? (
-                <>
+                <div className="flex items-center gap-1 ml-1">
                   <button
                     type="button"
                     data-ocid="nav.mybookings.link"
                     onClick={() => handleNav("myBookings")}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       currentPage === "myBookings"
                         ? "bg-gold text-navy-dark"
                         : "text-white/80 hover:text-white hover:bg-white/10"
@@ -112,12 +113,11 @@ export function Navbar({
                     type="button"
                     data-ocid="nav.logout.button"
                     onClick={handleLogout}
-                    className="flex items-center gap-1.5 ml-1 px-3 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-all"
                   >
                     <LogOut className="w-4 h-4" />
-                    Logout
                   </button>
-                </>
+                </div>
               ) : (
                 <Button
                   data-ocid="nav.login.button"
@@ -132,6 +132,7 @@ export function Navbar({
               ))}
           </div>
 
+          {/* Mobile */}
           <div className="lg:hidden">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -149,7 +150,7 @@ export function Navbar({
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between p-5 border-b border-white/10">
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-white font-display">
                       Bobby<span className="text-gold">Travels</span>
                     </span>
                     <Button
@@ -161,8 +162,8 @@ export function Navbar({
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
-                  <div className="flex flex-col p-4 gap-1">
-                    {navLinks.map((link) => (
+                  <div className="flex flex-col p-4 gap-1 flex-1 overflow-y-auto">
+                    {NAV_LINKS.map((link) => (
                       <button
                         type="button"
                         key={link.page}
@@ -202,8 +203,7 @@ export function Navbar({
                           className="w-full border-white/20 text-white/70 hover:bg-white/10 gap-2"
                           onClick={handleLogout}
                         >
-                          <LogOut className="w-4 h-4" />
-                          Logout
+                          <LogOut className="w-4 h-4" /> Logout
                         </Button>
                       ) : (
                         <Button
@@ -211,15 +211,16 @@ export function Navbar({
                           className="w-full bg-gold text-navy-dark hover:bg-gold/90 gap-2"
                           onClick={() => handleNav("login")}
                         >
-                          <LogIn className="w-4 h-4" />
-                          Login / Register
+                          <LogIn className="w-4 h-4" /> Login / Register
                         </Button>
                       ))}
-                    <p className="text-white/40 text-xs">
-                      <a href="tel:9815480825" className="hover:text-gold">
-                        +91 9815480825
-                      </a>
-                    </p>
+                    <a
+                      href="tel:+919815480825"
+                      className="flex items-center gap-2 text-white/40 text-xs hover:text-gold transition-colors"
+                    >
+                      <Phone className="w-3 h-3" />
+                      +91 9815480825
+                    </a>
                   </div>
                 </div>
               </SheetContent>

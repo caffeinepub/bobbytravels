@@ -1,370 +1,312 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
+  ChevronRight,
+  FileCheck,
   Globe,
+  MapPin,
+  Phone as PhoneIcon,
   Plane,
-  Search,
-  Smartphone,
-  Stamp,
+  Shield,
   Star,
 } from "lucide-react";
-import { motion } from "motion/react";
-import type { UserPage as Page } from "./UserApp";
+import type { UserPage } from "./UserApp";
 
-interface HomePageProps {
-  onNavigate: (page: Page) => void;
-}
-
-const services = [
+const SERVICES = [
   {
     icon: Plane,
-    title: "Air Tickets",
-    desc: "Domestic & international flights at the best prices. WhatsApp deals directly from us.",
-    page: "search" as Page,
-    color: "bg-blue-50 text-blue-600",
+    title: "Flight Booking",
+    desc: "Domestic & international flights with best fares",
+    page: "bookFlight" as UserPage,
+    color: "text-blue-400",
   },
   {
-    icon: Stamp,
+    icon: FileCheck,
     title: "Visa Services",
-    desc: "Tourist, business, student & work visas for 50+ countries. Quick processing.",
-    page: "visa" as Page,
-    color: "bg-purple-50 text-purple-600",
+    desc: "Visa assistance for 50+ countries worldwide",
+    page: "visa" as UserPage,
+    color: "text-emerald-400",
   },
   {
     icon: Globe,
     title: "Tour Packages",
-    desc: "All-inclusive holiday packages: flights, hotels, tours. Customized itineraries.",
-    page: "tours" as Page,
-    color: "bg-emerald-50 text-emerald-600",
+    desc: "Curated holiday packages at unbeatable prices",
+    page: "tours" as UserPage,
+    color: "text-purple-400",
   },
   {
-    icon: Search,
-    title: "PNR Status",
-    desc: "Check your flight status and booking details. Get updates via WhatsApp.",
-    page: "pnr" as Page,
-    color: "bg-amber-50 text-amber-600",
+    icon: Shield,
+    title: "PNR Check",
+    desc: "Check your booking status & travel updates",
+    page: "pnr" as UserPage,
+    color: "text-orange-400",
+  },
+  {
+    icon: PhoneIcon,
+    title: "Airline Helpline",
+    desc: "Direct contact for 60+ international airlines",
+    page: "airlineHelpline" as UserPage,
+    color: "text-gold",
   },
 ];
 
-const destinations = [
-  { name: "Dubai", country: "UAE", gradient: "from-amber-400 to-orange-500" },
+const DESTINATIONS = [
+  { city: "Dubai", country: "UAE", emoji: "🇦🇪", tag: "Most Popular" },
+  { city: "Singapore", country: "Singapore", emoji: "🇸🇬", tag: "Trending" },
+  { city: "London", country: "UK", emoji: "🇬🇧", tag: "Visa Required" },
+  { city: "Bangkok", country: "Thailand", emoji: "🇹🇭", tag: "Budget Friendly" },
+  { city: "Toronto", country: "Canada", emoji: "🇨🇦", tag: "Study Abroad" },
+  { city: "Sydney", country: "Australia", emoji: "🇦🇺", tag: "Holiday" },
+];
+
+const WHY_US = [
   {
-    name: "Singapore",
-    country: "Singapore",
-    gradient: "from-red-400 to-rose-500",
+    icon: Star,
+    title: "Best Fare Guarantee",
+    desc: "We match or beat any competitor price for the same itinerary.",
   },
   {
-    name: "Thailand",
-    country: "Bangkok & Phuket",
-    gradient: "from-teal-400 to-cyan-500",
+    icon: PhoneIcon,
+    title: "24/7 WhatsApp Support",
+    desc: "Instant response on WhatsApp for all your travel needs.",
   },
   {
-    name: "Europe",
-    country: "Paris • Rome • Amsterdam",
-    gradient: "from-blue-400 to-indigo-500",
+    icon: Shield,
+    title: "100% Secure Booking",
+    desc: "All payments processed securely via UPI & bank transfers.",
   },
   {
-    name: "USA",
-    country: "New York & LA",
-    gradient: "from-slate-400 to-blue-600",
-  },
-  {
-    name: "Maldives",
-    country: "Island Paradise",
-    gradient: "from-cyan-400 to-blue-500",
+    icon: Globe,
+    title: "Worldwide Coverage",
+    desc: "Flights to 500+ destinations across 150+ countries.",
   },
 ];
 
-const features = [
-  {
-    icon: "💰",
-    title: "Best Prices",
-    desc: "We compare hundreds of airlines to get you the lowest fares",
-  },
-  {
-    icon: "📱",
-    title: "WhatsApp Support",
-    desc: "Get instant quotes and deals directly on your WhatsApp",
-  },
-  {
-    icon: "✈️",
-    title: "All Airlines",
-    desc: "All domestic and international airlines covered",
-  },
-  {
-    icon: "🤝",
-    title: "Trusted Agency",
-    desc: "10+ years of experience, 50,000+ happy travelers",
-  },
-];
-
-export function HomePage({ onNavigate }: HomePageProps) {
+export function HomePage({
+  onNavigate,
+}: { onNavigate: (page: UserPage) => void }) {
   return (
-    <main data-ocid="home.page" className="min-h-screen">
+    <main className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="relative bg-navy-dark text-white min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-navy-dark via-navy to-blue-900 opacity-90" />
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-gold/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
+      <section className="relative bg-gradient-to-br from-navy-dark via-navy to-navy-light/60 min-h-[90vh] flex items-center justify-center px-4 pt-16">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-5xl mx-auto px-4 text-center py-32">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 rounded-full px-4 py-2 mb-6">
-              <Star className="w-4 h-4 text-gold fill-gold" />
-              <span className="text-gold text-sm font-medium">
-                India's Trusted Travel Partner
-              </span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Your <span className="text-gold">Dream Trip</span>
-              <br />
-              Starts Here
-            </h1>
-            <p className="text-white/70 text-xl mb-10 max-w-2xl mx-auto">
-              Flights, Visas, Tour Packages &amp; more — all with personalized
-              WhatsApp support from BobbyTravels.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                data-ocid="home.book_flight.primary_button"
-                size="lg"
-                onClick={() => onNavigate("search")}
-                className="bg-gold hover:bg-gold/90 text-navy-dark font-bold h-14 px-8 text-base rounded-xl gap-2"
-              >
-                <Plane className="w-5 h-5" />
-                Book a Flight
-              </Button>
-              <Button
-                data-ocid="home.visa.secondary_button"
-                size="lg"
-                variant="outline"
-                onClick={() => onNavigate("visa")}
-                className="border-white/30 text-white hover:bg-white/10 h-14 px-8 text-base rounded-xl gap-2"
-              >
-                <Stamp className="w-5 h-5" />
-                Visa Services
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-        {/* Stats bar */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm border-t border-white/10">
-          <div className="max-w-4xl mx-auto px-4 py-4 grid grid-cols-3 gap-4 text-center">
-            {[
-              { value: "10+", label: "Years Experience" },
-              { value: "50,000+", label: "Happy Travelers" },
-              { value: "24/7", label: "WhatsApp Support" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-gold font-bold text-xl">{stat.value}</p>
-                <p className="text-white/60 text-xs">{stat.label}</p>
-              </div>
-            ))}
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 rounded-full px-4 py-1.5 text-gold text-sm font-medium mb-6">
+            <Plane className="w-4 h-4" />
+            India's Trusted Travel Partner
+          </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight font-display">
+            Fly Smart, <span className="text-gold">Travel Better</span>
+          </h1>
+          <p className="text-lg text-white/70 mb-8 max-w-xl mx-auto">
+            Best fares on international & domestic flights. Visa, tours, and
+            24/7 WhatsApp support.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              data-ocid="home.bookflight.primary_button"
+              onClick={() => onNavigate("bookFlight")}
+              className="h-12 px-8 bg-gold hover:bg-gold/90 text-navy-dark font-semibold gap-2 text-base rounded-xl"
+            >
+              <Plane className="w-5 h-5" /> Book Flight Now
+            </Button>
+            <Button
+              data-ocid="home.whatsapp.secondary_button"
+              variant="outline"
+              onClick={() =>
+                window.open("https://wa.me/919815480825", "_blank")
+              }
+              className="h-12 px-8 border-white/30 text-white hover:bg-white/10 gap-2 text-base rounded-xl"
+            >
+              Get a Quote
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Services */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Our <span className="text-navy">Services</span>
+      <section className="py-16 px-4 max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3 font-display">
+            Our Services
+          </h2>
+          <p className="text-muted-foreground">
+            Everything you need for a perfect trip
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {SERVICES.map((s) => (
+            <button
+              key={s.page}
+              type="button"
+              data-ocid={`home.${s.page}.card`}
+              onClick={() => onNavigate(s.page)}
+              className="bg-card border border-border rounded-2xl p-4 text-left hover:border-gold/30 hover:shadow-md transition-all group"
+            >
+              <s.icon
+                className={`w-8 h-8 mb-3 ${s.color} group-hover:scale-110 transition-transform`}
+              />
+              <h3 className="font-semibold text-foreground text-sm mb-1">
+                {s.title}
+              </h3>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {s.desc}
+              </p>
+              <ChevronRight className="w-4 h-4 text-muted-foreground mt-2 group-hover:text-gold group-hover:translate-x-1 transition-all" />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Destinations */}
+      <section className="py-16 px-4 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3 font-display">
+              Popular Destinations
             </h2>
-            <p className="text-muted-foreground">
-              Everything you need for your perfect travel experience
-            </p>
+            <p className="text-muted-foreground">Trending routes from India</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((svc, i) => (
-              <motion.div
-                key={svc.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {DESTINATIONS.map((d) => (
+              <button
+                key={d.city}
+                type="button"
+                data-ocid="home.destination.card"
+                onClick={() => onNavigate("bookFlight")}
+                className="bg-card border border-border rounded-2xl p-4 text-center hover:border-gold/30 transition-all group"
               >
-                <Card
-                  data-ocid={`home.service.card.${i + 1}`}
-                  className="border-0 shadow-sm hover:shadow-lg transition-all rounded-2xl cursor-pointer group"
-                  onClick={() => onNavigate(svc.page)}
-                >
-                  <CardContent className="p-6">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${svc.color} group-hover:scale-110 transition-transform`}
-                    >
-                      <svc.icon className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-bold text-base mb-2">{svc.title}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                      {svc.desc}
-                    </p>
-                    <span className="text-navy text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                      Explore <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                <div className="text-3xl mb-2">{d.emoji}</div>
+                <h3 className="font-semibold text-foreground text-sm">
+                  {d.city}
+                </h3>
+                <p className="text-muted-foreground text-xs">{d.country}</p>
+                <span className="inline-block mt-2 text-[10px] bg-gold/10 text-gold border border-gold/20 rounded-full px-2 py-0.5">
+                  {d.tag}
+                </span>
+              </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Popular Destinations */}
-      <section className="py-20 px-4 bg-sky-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Popular <span className="text-navy">Destinations</span>
-            </h2>
-            <p className="text-muted-foreground">
-              Top destinations our customers love
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {destinations.map((dest, i) => (
-              <motion.div
-                key={dest.name}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.08 }}
-                viewport={{ once: true }}
-              >
-                <button
-                  type="button"
-                  data-ocid={`home.destination.card.${i + 1}`}
-                  className={`bg-gradient-to-br ${dest.gradient} rounded-2xl p-6 text-white cursor-pointer hover:scale-105 transition-transform shadow-md w-full text-left`}
-                  onClick={() => onNavigate("search")}
-                >
-                  <h3 className="font-bold text-xl">{dest.name}</h3>
-                  <p className="text-white/80 text-sm mt-1">{dest.country}</p>
-                  <div className="mt-4 flex items-center gap-1 text-white/80 text-sm">
-                    <Plane className="w-3.5 h-3.5" />
-                    Book now
-                  </div>
-                </button>
-              </motion.div>
-            ))}
-          </div>
+      {/* Why Us */}
+      <section className="py-16 px-4 max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3 font-display">
+            Why Choose BobbyTravels?
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {WHY_US.map((w) => (
+            <div
+              key={w.title}
+              className="bg-card border border-border rounded-2xl p-5"
+            >
+              <w.icon className="w-8 h-8 text-gold mb-3" />
+              <h3 className="font-semibold text-foreground mb-2">{w.title}</h3>
+              <p className="text-muted-foreground text-sm">{w.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Why Choose Us */}
-      <section className="py-20 px-4 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-3">
-              Why Choose <span className="text-navy">BobbyTravels</span>?
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <div className="flex items-start gap-4 p-5 bg-sky-50 rounded-2xl">
-                  <div className="text-2xl">{f.icon}</div>
-                  <div>
-                    <h3 className="font-bold mb-1">{f.title}</h3>
-                    <p className="text-muted-foreground text-sm">{f.desc}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+      {/* CTA Banner */}
+      <section className="py-12 px-4 bg-gradient-to-r from-navy-dark to-navy">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 font-display">
+            Ready to plan your next trip?
+          </h2>
+          <p className="text-white/70 mb-6">
+            Book now and get instant confirmation via WhatsApp.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              data-ocid="home.cta.primary_button"
+              onClick={() => onNavigate("bookFlight")}
+              className="h-11 px-8 bg-gold hover:bg-gold/90 text-navy-dark font-semibold gap-2 rounded-xl"
+            >
+              <Plane className="w-4 h-4" /> Book Now
+            </Button>
+            <Button
+              data-ocid="home.helpline.secondary_button"
+              variant="outline"
+              onClick={() => onNavigate("airlineHelpline")}
+              className="h-11 px-8 border-white/30 text-white hover:bg-white/10 gap-2 rounded-xl"
+            >
+              <PhoneIcon className="w-4 h-4" /> Airline Helplines
+              <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Get the App */}
-      <section className="py-20 px-4 bg-navy-dark text-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Smartphone className="w-8 h-8 text-navy-dark" />
+      <section className="py-16 px-4 max-w-3xl mx-auto">
+        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 text-center">
+          <div className="w-14 h-14 bg-gold/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Plane className="w-7 h-7 text-gold" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2 font-display">
+            Install the BobbyTravels App
+          </h2>
+          <p className="text-muted-foreground text-sm mb-6">
+            Add to your home screen for quick access — no app store needed.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            <div className="bg-muted rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🤖</span>
+                <h3 className="font-semibold text-foreground text-sm">
+                  Android
+                </h3>
+              </div>
+              <ol className="text-muted-foreground text-xs space-y-1 list-decimal list-inside">
+                <li>Open Chrome browser</li>
+                <li>Tap the ⋮ menu (top right)</li>
+                <li>Tap "Add to Home screen"</li>
+                <li>Tap "Add" to confirm</li>
+              </ol>
             </div>
-            <h2 className="text-3xl font-bold mb-3">
-              Get the <span className="text-gold">App</span>
-            </h2>
-            <p className="text-white/70">
-              Install BobbyTravels on your phone — no App Store needed!
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <Card className="bg-white/10 border-white/20 rounded-2xl">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-white mb-3">🤖 Android</h3>
-                <ol className="space-y-2 text-white/70 text-sm">
-                  <li>1. Open this site in Chrome</li>
-                  <li>2. Tap the menu (⋮) in Chrome</li>
-                  <li>3. Tap "Add to Home screen"</li>
-                  <li>4. Confirm — done!</li>
-                </ol>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/10 border-white/20 rounded-2xl">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-white mb-3">🍎 iPhone</h3>
-                <ol className="space-y-2 text-white/70 text-sm">
-                  <li>1. Open this site in Safari</li>
-                  <li>2. Tap the Share button (□↑)</li>
-                  <li>3. Scroll and tap "Add to Home Screen"</li>
-                  <li>4. Tap Add — done!</li>
-                </ol>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="text-center mt-8">
-            <p className="text-white/50 text-sm">
-              Works offline • Installs like a native app • No App Store required
-            </p>
+            <div className="bg-muted rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🍎</span>
+                <h3 className="font-semibold text-foreground text-sm">
+                  iPhone / iPad
+                </h3>
+              </div>
+              <ol className="text-muted-foreground text-xs space-y-1 list-decimal list-inside">
+                <li>Open Safari browser</li>
+                <li>Tap the Share icon (□↑)</li>
+                <li>Scroll and tap "Add to Home Screen"</li>
+                <li>Tap "Add" to confirm</li>
+              </ol>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 px-4 bg-gold">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-navy-dark mb-4">
-            Ready to Travel?
-          </h2>
-          <p className="text-navy/70 mb-8">
-            Get exclusive deals sent directly to your WhatsApp. No middlemen,
-            just great prices.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              data-ocid="home.cta.primary_button"
-              size="lg"
-              onClick={() => onNavigate("search")}
-              className="bg-navy-dark hover:bg-navy text-white h-12 px-8 rounded-xl gap-2"
-            >
-              <Plane className="w-5 h-5" />
-              Book Flight Now
-            </Button>
-            <a
-              href="https://wa.me/919815480825?text=Hi! I want to know about your travel deals."
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-navy-dark text-navy-dark hover:bg-navy-dark hover:text-white h-12 px-8 rounded-xl"
-              >
-                WhatsApp Us
-              </Button>
-            </a>
-          </div>
+      {/* Location / Contact strip */}
+      <section className="py-6 px-4 border-t border-border">
+        <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+          <a
+            href="tel:+919815480825"
+            className="flex items-center gap-1.5 hover:text-gold transition-colors"
+          >
+            <PhoneIcon className="w-4 h-4" /> +91 9815480825
+          </a>
+          <a
+            href="mailto:book@bobbytravels.online"
+            className="flex items-center gap-1.5 hover:text-gold transition-colors"
+          >
+            ✉️ book@bobbytravels.online
+          </a>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="w-4 h-4" /> India
+          </span>
         </div>
       </section>
     </main>

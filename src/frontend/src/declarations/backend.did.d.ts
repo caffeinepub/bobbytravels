@@ -14,6 +14,7 @@ export interface AdminStats {
   'totalPNREnquiries' : bigint,
   'totalTourEnquiries' : bigint,
   'totalFlightEnquiries' : bigint,
+  'totalBookings' : bigint,
   'totalVisaEnquiries' : bigint,
   'totalUsers' : bigint,
 }
@@ -93,6 +94,15 @@ export interface TourEnquiryInput {
   'budget' : [] | [string],
   'customerEmail' : [] | [string],
 }
+export interface TransformationInput {
+  'context' : Uint8Array,
+  'response' : http_request_result,
+}
+export interface TransformationOutput {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export type TripType = { 'isFlexible' : null } |
   { 'returnTrip' : null } |
   { 'oneWay' : null };
@@ -103,6 +113,41 @@ export interface User {
   'passwordHash' : string,
   'isAdmin' : boolean,
   'phone' : [] | [string],
+}
+export interface UserBooking {
+  'customerName' : string,
+  'destination' : string,
+  'cabinClass' : string,
+  'paymentStatus' : string,
+  'bookingId' : bigint,
+  'tripType' : string,
+  'infantsCount' : bigint,
+  'adultsCount' : bigint,
+  'customerPhone' : string,
+  'departureDate' : string,
+  'pnrNumber' : [] | [string],
+  'userId' : bigint,
+  'createdAt' : bigint,
+  'origin' : string,
+  'bookingStatus' : string,
+  'amadeusFlightInfo' : [] | [string],
+  'childrenCount' : bigint,
+  'customerEmail' : string,
+  'returnDate' : [] | [string],
+}
+export interface UserBookingInput {
+  'customerName' : string,
+  'destination' : string,
+  'cabinClass' : string,
+  'tripType' : string,
+  'infantsCount' : bigint,
+  'adultsCount' : bigint,
+  'customerPhone' : string,
+  'departureDate' : string,
+  'origin' : string,
+  'childrenCount' : bigint,
+  'customerEmail' : string,
+  'returnDate' : [] | [string],
 }
 export interface UserProfile {
   'name' : string,
@@ -134,10 +179,17 @@ export interface VisaEnquiryInput {
   'customerEmail' : [] | [string],
   'specialNotes' : [] | [string],
 }
+export interface http_header { 'value' : string, 'name' : string }
+export interface http_request_result {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAdminStats' : ActorMethod<[SessionToken], AdminStats>,
+  'getAllBookings' : ActorMethod<[SessionToken], Array<UserBooking>>,
   'getAllFlightEnquiries' : ActorMethod<
     [SessionToken],
     Array<[bigint, FlightEnquiry]>
@@ -155,8 +207,10 @@ export interface _SERVICE {
     [SessionToken],
     Array<[bigint, VisaEnquiry]>
   >,
+  'getAmadeusFlightInfo' : ActorMethod<[SessionToken, string, string], string>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getUserBookings' : ActorMethod<[SessionToken], Array<UserBooking>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'loginUser' : ActorMethod<[string, string], SessionToken>,
@@ -165,10 +219,21 @@ export interface _SERVICE {
     SessionToken
   >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'saveUserBooking' : ActorMethod<[SessionToken, UserBookingInput], bigint>,
   'submitFlightEnquiry' : ActorMethod<[FlightEnquiryInput], bigint>,
   'submitPNREnquiry' : ActorMethod<[PNREnquiryInput], bigint>,
   'submitTourEnquiry' : ActorMethod<[TourEnquiryInput], bigint>,
   'submitVisaEnquiry' : ActorMethod<[VisaEnquiryInput], bigint>,
+  'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateBookingPNR' : ActorMethod<[SessionToken, bigint, string], undefined>,
+  'updateBookingPaymentStatus' : ActorMethod<
+    [SessionToken, bigint, string],
+    undefined
+  >,
+  'updateBookingStatus' : ActorMethod<
+    [SessionToken, bigint, string],
+    undefined
+  >,
   'updateFlightEnquiryStatus' : ActorMethod<
     [SessionToken, bigint, string],
     undefined
