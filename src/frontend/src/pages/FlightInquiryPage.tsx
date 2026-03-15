@@ -4,7 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Minus, Plane, Plus, Send, Star, Users } from "lucide-react";
+import {
+  Calendar,
+  ExternalLink,
+  Minus,
+  Plane,
+  Plus,
+  Send,
+  Star,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { TripType } from "../backend.d";
@@ -211,6 +220,7 @@ export function FlightInquiryPage() {
 
   return (
     <main className="min-h-screen bg-background pt-20 pb-16">
+      {/* Hero */}
       <div className="bg-gradient-to-br from-navy-dark via-navy to-navy-light/80 py-12 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
@@ -228,7 +238,48 @@ export function FlightInquiryPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-6">
+      {/* Trip.com Affiliate Search Box */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 mb-2">
+        <div className="flex items-center gap-2 mb-2">
+          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Search &amp; Book Directly
+          </p>
+        </div>
+        <div
+          data-ocid="trip.search.panel"
+          className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm"
+        >
+          <div className="p-2 min-w-[920px]">
+            <iframe
+              src="https://www.trip.com/partners/ad/S13946361?Allianceid=7954115&SID=299528265&trip_sub1="
+              style={{
+                width: "900px",
+                height: "200px",
+                border: "none",
+                display: "block",
+              }}
+              scrolling="no"
+              id="S13946361"
+              title="Search and book flights on Trip.com"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1.5 text-right">
+          Powered by{" "}
+          <a
+            href="https://www.trip.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+          >
+            Trip.com
+          </a>
+        </p>
+      </div>
+
+      {/* Enquiry Form */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-4">
         <form
           onSubmit={handleSubmit}
           className="bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
